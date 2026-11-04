@@ -17,7 +17,7 @@
 
 **النسخة الخفيفة (INIMD Lite — للإنترنت الضعيف والأجهزة القديمة):**
 
-- `INIMD Lite_1.0.0_x64-setup.exe` — مثبّت بحجم **~3.5 MB**، متوفّر في [صفحة الإصدارات](https://github.com/inisoliman/INIMD/releases) بوسم `lite-v1.0.0` (إصدار تجريبي prerelease).
+- [`INIMD.Lite_1.0.0_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.0/INIMD.Lite_1.0.0_x64-setup.exe) — مثبّت بحجم **~3.5 MB**، منشور كإصدار تجريبي بوسم `lite-v1.0.0`.
 
 ## المزايا
 
@@ -226,6 +226,8 @@ gh release create v1.1.1 "release/INIMD-Setup-1.1.1.exe" "release/INIMD-Portable
 # النسخة الخفيفة (prerelease، لا تلمس latest)
 gh release create lite-v1.0.0 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.0.0_x64-setup.exe" --prerelease --title "INIMD Lite 1.0.0" --notes "نسخة خفيفة تجريبية."
 ```
+
+> يرفع GitHub الأصول ويستبدل المسافات في أسماء الملفات بنقاط، فيصبح الأصل `INIMD.Lite_1.0.0_x64-setup.exe`.
 
 > إن كان المستودع خاصاً، أضف التوكن إلى الإعدادات (أو `INIMD_GH_TOKEN`) كما في قسم **التحديثات** أعلاه.
 
