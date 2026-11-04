@@ -8,16 +8,16 @@ const sample = join(root, 'docs', 'sample-ar.md')
 const outDir = join(root, 'docs', 'samples')
 mkdirSync(outDir, { recursive: true })
 
-const pdfOut = join(outDir, 'midad-sample.pdf')
-const docxOut = join(outDir, 'midad-sample.docx')
+const pdfOut = join(outDir, 'inimd-sample.pdf')
+const docxOut = join(outDir, 'inimd-sample.docx')
 for (const file of [pdfOut, docxOut]) rmSync(file, { force: true })
 
 const app = await electron.launch({
   args: ['.', sample],
   env: {
     ...process.env,
-    MIDAD_PDF_OUT: pdfOut,
-    MIDAD_DOCX_OUT: docxOut
+    INIMD_PDF_OUT: pdfOut,
+    INIMD_DOCX_OUT: docxOut
   }
 })
 

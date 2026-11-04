@@ -1,6 +1,6 @@
-appId: com.midad.markdown
-productName: Midad
-copyright: Copyright © 2026 Midad
+appId: com.ini.inimd
+productName: INIMD
+copyright: Copyright © 2026 INIMD
 
 directories:
   buildResources: build
@@ -21,12 +21,12 @@ compression: normal
 
 win:
   icon: build/icon.ico
-  executableName: Midad
+  executableName: INIMD
   target:
     - target: nsis
       arch:
         - x64
-  artifactName: Midad-Setup-${version}.${ext}
+  artifactName: INIMD-Setup-${version}.${ext}
 
 nsis:
   oneClick: false
@@ -35,9 +35,9 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: مِداد
+  shortcutName: INIMD
   deleteAppDataOnUninstall: false
-  artifactName: Midad-Setup-${version}.${ext}
+  artifactName: INIMD-Setup-${version}.${ext}
   installerLanguages:
     - ar_SA
     - en_US
@@ -55,6 +55,6 @@ fileAssociations:
     role: Editor
 
 portable:
-  artifactName: Midad-Portable-${version}.${ext}
+  artifactName: INIMD-Portable-${version}.${ext}
 
 publish: null

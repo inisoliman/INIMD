@@ -147,9 +147,9 @@ export default function App(): React.ReactElement {
     })()
 
     try {
-      const storedLayout = localStorage.getItem('midad:layout') as LayoutMode | null
+      const storedLayout = localStorage.getItem('inimd:layout') as LayoutMode | null
       if (storedLayout === 'split' || storedLayout === 'editor' || storedLayout === 'preview') setLayout(storedLayout)
-      const storedSidebar = localStorage.getItem('midad:sidebar')
+      const storedSidebar = localStorage.getItem('inimd:sidebar')
       if (storedSidebar !== null) setSidebar(storedSidebar === 'true')
     } catch {
       /* ignore */
@@ -162,8 +162,8 @@ export default function App(): React.ReactElement {
 
   useEffect(() => {
     try {
-      localStorage.setItem('midad:layout', layout)
-      localStorage.setItem('midad:sidebar', String(sidebar))
+      localStorage.setItem('inimd:layout', layout)
+      localStorage.setItem('inimd:sidebar', String(sidebar))
     } catch {
       /* ignore */
     }
@@ -193,7 +193,7 @@ export default function App(): React.ReactElement {
   }, [settings.editorWidth])
 
   useEffect(() => {
-    document.title = activeTab ? `${activeTab.name} — مِداد` : 'مِداد'
+    document.title = activeTab ? `${activeTab.name} — INIMD` : 'INIMD'
   }, [activeTab?.name])
 
   /* -------------------------------------------------------------- */
@@ -458,7 +458,7 @@ export default function App(): React.ReactElement {
         return
       }
       setDialog({
-        title: 'إغلاق مِداد',
+        title: 'إغلاق INIMD',
         message: `لديك ${dirty.length} ملف بها تغييرات غير محفوظة. ماذا تريد أن تفعل؟`,
         buttons: [
           {
@@ -636,7 +636,7 @@ export default function App(): React.ReactElement {
   if (!loaded) {
     return (
       <div className="boot">
-        <div className="boot-mark">م</div>
+        <div className="boot-mark">INI</div>
       </div>
     )
   }

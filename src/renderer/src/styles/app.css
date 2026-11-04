@@ -164,7 +164,8 @@ button {
 .boot-mark {
   width: 64px;
   height: 64px;
-  font-size: 32px;
+  font-size: 20px;
+  letter-spacing: 0.5px;
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -211,7 +212,8 @@ button {
 .brand-mark {
   width: 30px;
   height: 30px;
-  font-size: 17px;
+  font-size: 10px;
+  letter-spacing: 0.3px;
   border-radius: 9px;
 }
 .brand-name {
@@ -768,7 +770,8 @@ body.resizing {
 .welcome-mark {
   width: 72px;
   height: 72px;
-  font-size: 38px;
+  font-size: 25px;
+  letter-spacing: 1px;
   margin: 0 auto 16px;
   border-radius: 22px;
 }

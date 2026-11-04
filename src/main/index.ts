@@ -8,7 +8,7 @@ import { extractMarkdownArg, isMarkdownPath, readDocument } from './files'
 import { exportPdf } from './pdf'
 import { addRecent, clearRecent, getRecent, getSettings, saveSettings } from './store'
 
-const APP_ID = 'com.midad.markdown'
+const APP_ID = 'com.ini.inimd'
 const MD_FILTERS = [
   { name: 'ملفات Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx'] },
   { name: 'كل الملفات', extensions: ['*'] }
@@ -23,7 +23,7 @@ app.setAppUserModelId(APP_ID)
 
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: 'midad',
+    scheme: 'inimd',
     privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true }
   }
 ])
@@ -31,7 +31,7 @@ protocol.registerSchemesAsPrivileged([
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.avif', '.ico'])
 
 async function registerAssetProtocol(): Promise<void> {
-  protocol.handle('midad', async (request) => {
+  protocol.handle('inimd', async (request) => {
     try {
       const url = new URL(request.url)
       const target = url.searchParams.get('path')
@@ -151,14 +151,14 @@ function buildMenu(): void {
       submenu: [
         { label: 'دليل الاستخدام', click: () => sendMenu('guide') },
         {
-          label: 'حول مِداد',
+          label: 'حول INIMD',
           click: () => {
             dialog.showMessageBox({
               type: 'info',
-              title: 'حول مِداد',
-              message: `مِداد ${app.getVersion()}`,
+              title: 'حول INIMD',
+              message: `INIMD ${app.getVersion()}`,
               detail:
-                'محرر وعارض Markdown عربي لويندوز.\nيدعم الاتجاه من اليمين إلى اليسار وتصدير PDF وWord.\n\nصُنع بـ Electron وReact.',
+                'محرر وعارض Markdown عربي لويندوز.\nيدعم الاتجاه من اليمين إلى اليسار وتصدير PDF وWord.\n\nتطوير: INI\nالبريد: ibrahim.noshy@hotmail.com\n\nصُنع بـ Electron وReact.',
               buttons: ['حسناً']
             })
           }
@@ -178,7 +178,7 @@ function createWindow(): void {
     minHeight: 620,
     show: false,
     backgroundColor: '#fbf9f4',
-    title: 'مِداد',
+    title: 'INIMD',
     icon: iconPath(),
     autoHideMenuBar: false,
     webPreferences: {
@@ -318,7 +318,7 @@ function registerIpc(): void {
     try {
       const settings = await getSettings()
       const suggestedDir = payload.suggestedDir || payload.baseDir || (await lastDirectory())
-      let targetPath = process.env['MIDAD_DOCX_OUT'] ?? ''
+      let targetPath = process.env['INIMD_DOCX_OUT'] ?? ''
       if (!targetPath) {
         const result = await dialog.showSaveDialog(mainWindow, {
           title: 'تصدير إلى Word',
@@ -379,9 +379,9 @@ async function defaultDocumentPath(suggestedName: string): Promise<string> {
 }
 
 async function runSelfTest(): Promise<void> {
-  const outDir = join(app.getPath('temp'), 'midad-selftest')
+  const outDir = join(app.getPath('temp'), 'inimd-selftest')
   await fs.mkdir(outDir, { recursive: true })
-  const markdown = `# اختبار مِداد
+  const markdown = `# اختبار INIMD
 
 هذا ملف تجريبي **بخط عريض** و*مائل* و\`كود\`.
 

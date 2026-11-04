@@ -47,7 +47,7 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
       width={620}
       footer={
         <div className="settings-footer">
-          <span className="version">مِداد {version}</span>
+          <span className="version">INIMD {version}</span>
           <button className="ghost-btn" onClick={() => onChange(DEFAULT_SETTINGS)}>
             استعادة الافتراضي
           </button>

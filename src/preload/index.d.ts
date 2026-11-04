@@ -1,8 +1,8 @@
-import type { MidadApi } from '../shared/types'
+import type { INIMDApi } from '../shared/types'
 
 declare global {
   interface Window {
-    api: MidadApi
+    api: INIMDApi
   }
 }
 

@@ -13,8 +13,8 @@ export function Welcome({ recent, onNew, onOpen, onOpenRecent }: WelcomeProps): 
   return (
     <div className="welcome">
       <div className="welcome-inner">
-        <div className="welcome-mark">م</div>
-        <h1>مِداد</h1>
+        <div className="welcome-mark">INI</div>
+        <h1>INIMD</h1>
         <p className="welcome-sub">محرر وعارض Markdown عربي، بتصدير مباشر إلى PDF وWord.</p>
 
         <div className="welcome-actions">

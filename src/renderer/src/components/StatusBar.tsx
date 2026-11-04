@@ -39,7 +39,7 @@ export function StatusBar({ tab, words, lines, autosave, onShowInFolder }: Statu
             <span dir="ltr">{tab.path}</span>
           </button>
         ) : (
-          <span className="status-chip subtle">{tab ? 'ملف غير محفوظ' : 'مِداد'}</span>
+          <span className="status-chip subtle">{tab ? 'ملف غير محفوظ' : 'INIMD'}</span>
         )}
       </div>
     </div>

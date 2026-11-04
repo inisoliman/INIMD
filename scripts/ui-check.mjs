@@ -30,9 +30,9 @@ const app = await electron.launch({
   args: ['.', working],
   env: {
     ...process.env,
-    MIDAD_PDF_OUT: pdfOut,
-    MIDAD_DOCX_OUT: docxOut,
-    MIDAD_HTML_OUT: htmlOut
+    INIMD_PDF_OUT: pdfOut,
+    INIMD_DOCX_OUT: docxOut,
+    INIMD_HTML_OUT: htmlOut
   }
 })
 

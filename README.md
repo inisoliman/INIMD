@@ -1,12 +1,14 @@
-# مِداد — محرر Markdown عربي لويندوز
+# INIMD — محرر Markdown عربي لويندوز
 
-**مِداد** برنامج سطح مكتب خفيف وعربي أولاً لفتح ملفات Markdown وتحريرها ومعاينتها، مع تصدير مباشر إلى **PDF** و**Word (docx)** بدون إنترنت وبدون أي برامج خارجية.
+**INIMD** برنامج سطح مكتب خفيف وعربي أولاً لفتح ملفات Markdown وتحريرها ومعاينتها، مع تصدير مباشر إلى **PDF** و**Word (docx)** بدون إنترنت وبدون أي برامج خارجية.
 
-![أيقونة مِداد](build/icons/app-256.png)
+> **تطوير:** INI — للتواصل: [ibrahim.noshy@hotmail.com](mailto:ibrahim.noshy@hotmail.com)
+
+![أيقونة INIMD](build/icons/app-256.png)
 
 ## المزايا
 
-- **ربط تلقائي بملفات `.md` و`.markdown`** عند التركيب: نقرة مزدوجة من مستكشف ويندوز تفتح الملف في مِداد، مع عنصر «فتح بواسطة».
+- **ربط تلقائي بملفات `.md` و`.markdown`** عند التركيب: نقرة مزدوجة من مستكشف ويندوز تفتح الملف في INIMD، مع عنصر «فتح بواسطة».
 - **دعم عربي كامل**: كشف اتجاه تلقائي (RTL/LTR)، تبديل يدوي لكل ملف، خطوط عربية، تباعد أسطر مريح، وعزل ثنائي الاتجاه للأكواد والروابط.
 - **تحرير ومعاينة**: عرض مقسوم بمزامنة تمرير، أو تحرير فقط، أو معاينة فقط، مع فهرس عناوين جانبي وقائمة ملفات حديثة.
 - **محرر CodeMirror 6**: تمييز صياغة Markdown، إكمال تلقائي، بحث واستبدال بواجهة عربية، حزم كود، تراجع/إعادة.
@@ -31,8 +33,8 @@
 
 مخرجات حقيقية وُلّدت من [`docs/sample-ar.md`](docs/sample-ar.md):
 
-- [`docs/samples/midad-sample.pdf`](docs/samples/midad-sample.pdf) — صفحتان بترقيم صفحات وجدول وصورة.
-- [`docs/samples/midad-sample.docx`](docs/samples/midad-sample.docx) — مستند Word باتجاه RTL وأنماط عناوين.
+- [`docs/samples/inimd-sample.pdf`](docs/samples/inimd-sample.pdf) — صفحتان بترقيم صفحات وجدول وصورة.
+- [`docs/samples/inimd-sample.docx`](docs/samples/inimd-sample.docx) — مستند Word باتجاه RTL وأنماط عناوين.
 
 ## التشغيل للتطوير
 
@@ -73,10 +75,10 @@ npm run dist:portable
 
 تجد المخرجات في مجلد `release/`:
 
-- `Midad-Setup-1.0.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
-- `Midad-Portable-1.0.0.exe` — نسخة محمولة.
+- `INIMD-Setup-1.0.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
+- `INIMD-Portable-1.0.0.exe` — نسخة محمولة.
 
-> **ربط ملفات `.md`:** يسجّل المثبّت مِداد كبرنامج لفتح ملفات Markdown، لكن ويندوز 10/11 قد يحتفظ بالبرنامج الافتراضي السابق. لتثبيته افتراضياً: انقر بالزر الأيمن على أي ملف `.md` ← **فتح باستخدام** ← **اختيار تطبيق آخر** ← اختر **مِداد** ← **دائماً**.
+> **ربط ملفات `.md`:** يسجّل المثبّت INIMD كبرنامج لفتح ملفات Markdown، لكن ويندوز 10/11 قد يحتفظ بالبرنامج الافتراضي السابق. لتثبيته افتراضياً: انقر بالزر الأيمن على أي ملف `.md` ← **فتح باستخدام** ← **اختيار تطبيق آخر** ← اختر **INIMD** ← **دائماً**.
 
 ### ملاحظة حول SmartScreen
 
@@ -125,7 +127,7 @@ Electron · electron-vite · React 19 · TypeScript · CodeMirror 6 · markdown-
 
 ## النشر على GitHub
 
-المستودع غير مرفوع بعد. بعد تسجيل الدخول إلى GitHub مرة واحدة:
+المستودع خاص (private) باسم `INIMD` على حساب `inisoliman`. لنشره من جهاز آخر:
 
 ```bash
 gh auth login
@@ -136,16 +138,22 @@ gh auth login
 ```bash
 git init
 git add .
-git commit -m "مِداد: محرر Markdown عربي لويندوز مع تصدير PDF وWord"
+git commit -m "INIMD: محرر Markdown عربي لويندوز مع تصدير PDF وWord"
 git branch -M main
-gh repo create midad --public --source=. --remote=origin --push
+gh repo create INIMD --private --source=. --remote=origin --push
 ```
 
-لإرفاق المثبّت بإصدار على GitHub:
+لإرفاق المثبّت والنسخة المحمولة بإصدار على GitHub:
 
 ```bash
-gh release create v1.0.0 "release/Midad-Setup-1.0.0.exe" --title "مِداد 1.0.0" --notes "الإصدار الأول: محرر Markdown عربي مع تصدير PDF وWord."
+gh release create v1.0.0 "release/INIMD-Setup-1.0.0.exe" "release/INIMD-Portable-1.0.0.exe" --title "INIMD 1.0.0" --notes "الإصدار الأول: محرر Markdown عربي مع تصدير PDF وWord."
 ```
+
+## تطوير
+
+طُوِّر بواسطة **INI**.
+
+- البريد: [ibrahim.noshy@hotmail.com](mailto:ibrahim.noshy@hotmail.com)
 
 ## الترخيص
 

@@ -1,9 +1,9 @@
 {
-  "name": "midad",
+  "name": "inimd",
   "version": "1.0.0",
-  "description": "مِداد — محرر وعارض Markdown عربي لويندوز مع تصدير PDF و Word",
+  "description": "INIMD — محرر وعارض Markdown عربي لويندوز مع تصدير PDF و Word",
   "main": "./out/main/index.js",
-  "author": "Midad",
+  "author": "INI <ibrahim.noshy@hotmail.com>",
   "license": "MIT",
   "private": true,
   "scripts": {

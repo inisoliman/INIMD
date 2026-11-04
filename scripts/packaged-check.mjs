@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const exe = join(root, 'release', 'win-unpacked', 'Midad.exe')
+const exe = join(root, 'release', 'win-unpacked', 'INIMD.exe')
 const sample = join(root, 'docs', 'sample-ar.md')
-const pdfOut = join(tmpdir(), 'midad-packaged.pdf')
+const pdfOut = join(tmpdir(), 'inimd-packaged.pdf')
 
 if (!existsSync(exe)) {
   console.error('missing packaged exe:', exe)
@@ -17,7 +17,7 @@ if (!existsSync(exe)) {
 const app = await electron.launch({
   executablePath: exe,
   args: [sample],
-  env: { ...process.env, MIDAD_PDF_OUT: pdfOut }
+  env: { ...process.env, INIMD_PDF_OUT: pdfOut }
 })
 const win = await app.firstWindow()
 const errors = []
@@ -51,7 +51,7 @@ for (let i = 0; i < 50; i += 1) {
 }
 report.pdf = { exists: existsSync(pdfOut), size: existsSync(pdfOut) ? statSync(pdfOut).size : 0 }
 
-await win.screenshot({ path: join(tmpdir(), 'midad-packaged.png') })
+await win.screenshot({ path: join(tmpdir(), 'inimd-packaged.png') })
 console.log(JSON.stringify(report, null, 2))
 
 await win.evaluate(() => window.api.confirmClose(true)).catch(() => undefined)

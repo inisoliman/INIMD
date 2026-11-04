@@ -1,13 +1,30 @@
 import type { Direction } from '@shared/types'
 
 const ARABIC_RANGE = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/
-const LETTER = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]|[A-Za-z]/
+const ARABIC_LETTER = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/g
+const LATIN_LETTER = /[A-Za-z]/g
 
+/**
+ * يحدّد اتجاه المستند من أول حروفه الفعلية.
+ * يُهمل تنسيق Markdown والروابط والوسوم كي لا يحرف عنوان يبدأ باسم لاتيني
+ * (مثل «INIMD») اتجاه مستند عربي بالكامل.
+ */
 export function detectDirection(text: string, fallback: Direction = 'rtl'): Direction {
-  const withoutFrontMatter = text.replace(/^---\r?\n[\s\S]*?\r?\n---/, '')
-  const match = withoutFrontMatter.match(LETTER)
-  if (!match) return fallback
-  return ARABIC_RANGE.test(match[0]) ? 'rtl' : 'ltr'
+  const cleaned = text
+    .replace(/^---\r?\n[\s\S]*?\r?\n---/, '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/^[#>*_~\-|\s\d.]+/, '')
+
+  const sample = cleaned.slice(0, 400)
+  const arabic = sample.match(ARABIC_LETTER)?.length ?? 0
+  const latin = sample.match(LATIN_LETTER)?.length ?? 0
+  if (!arabic && !latin) return fallback
+  return arabic >= latin ? 'rtl' : 'ltr'
 }
 
 export function countWords(text: string): number {

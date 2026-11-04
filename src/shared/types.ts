@@ -99,7 +99,7 @@ export type MenuAction =
   | 'about'
   | 'guide'
 
-export interface MidadApi {
+export interface INIMDApi {
   openFile(): Promise<OpenedFile | null>
   openPath(path: string): Promise<OpenedFile>
   readFile(path: string): Promise<OpenedFile>

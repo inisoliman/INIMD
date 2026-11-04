@@ -35,12 +35,12 @@ $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
 $shape = New-RoundedPath 6 6 244 244 56
 $g.FillPath($brush, $shape)
 
-$font = New-Object System.Drawing.Font('Segoe UI', 142, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$font = New-Object System.Drawing.Font('Segoe UI', 76, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
 $fmt = New-Object System.Drawing.StringFormat
 $fmt.Alignment = [System.Drawing.StringAlignment]::Center
 $fmt.LineAlignment = [System.Drawing.StringAlignment]::Center
 $textRect = New-Object System.Drawing.RectangleF 0, -6, 256, 240
-$g.DrawString('م', $font, [System.Drawing.Brushes]::White, $textRect, $fmt)
+$g.DrawString('INI', $font, [System.Drawing.Brushes]::White, $textRect, $fmt)
 
 $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(235, 216, 163, 84)), 11
 $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
@@ -74,11 +74,11 @@ $pagePen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 
 $pagePen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
 $fg.DrawPath($pagePen, $page)
 
-$mFont = New-Object System.Drawing.Font('Segoe UI', 96, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$mFont = New-Object System.Drawing.Font('Segoe UI', 104, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
 $mFmt = New-Object System.Drawing.StringFormat
 $mFmt.Alignment = [System.Drawing.StringAlignment]::Center
 $mFmt.LineAlignment = [System.Drawing.StringAlignment]::Center
-$fg.DrawString('M', $mFont, (New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 14, 96, 74))), (New-Object System.Drawing.RectangleF 56, 108, 152, 110), $mFmt)
+$fg.DrawString('I', $mFont, (New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 14, 96, 74))), (New-Object System.Drawing.RectangleF 56, 108, 152, 110), $mFmt)
 
 $fg.Dispose()
 $fbmp.Save((Join-Path $icons 'file-256.png'), [System.Drawing.Imaging.ImageFormat]::Png)

@@ -64,7 +64,7 @@ export function resolveLocalPath(href: string, baseDir: string): string | null {
 }
 
 export function toAssetUrl(absolutePath: string): string {
-  return `midad://file/?path=${encodeURIComponent(absolutePath)}`
+  return `inimd://file/?path=${encodeURIComponent(absolutePath)}`
 }
 
 export function isExternalHref(href: string): boolean {

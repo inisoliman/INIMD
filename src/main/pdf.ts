@@ -15,7 +15,7 @@ export async function exportPdf(
   payload: ExportPdfPayload,
   suggestedDir: string
 ): Promise<ExportResult> {
-  let targetPath = process.env['MIDAD_PDF_OUT'] ?? ''
+  let targetPath = process.env['INIMD_PDF_OUT'] ?? ''
 
   if (!targetPath) {
     const target = await dialog.showSaveDialog(parent, {
@@ -28,15 +28,15 @@ export async function exportPdf(
     targetPath = target.filePath
   }
 
-  const tempDir = await fs.mkdtemp(join(tmpdir(), 'midad-pdf-'))
+  const tempDir = await fs.mkdtemp(join(tmpdir(), 'inimd-pdf-'))
   const htmlPath = join(tempDir, 'document.html')
   let printWindow: BrowserWindow | null = null
 
   try {
     await fs.mkdir(dirname(targetPath), { recursive: true }).catch(() => undefined)
     await fs.writeFile(htmlPath, payload.html, 'utf8')
-    if (process.env['MIDAD_HTML_OUT']) {
-      await fs.writeFile(process.env['MIDAD_HTML_OUT'], payload.html, 'utf8').catch(() => undefined)
+    if (process.env['INIMD_HTML_OUT']) {
+      await fs.writeFile(process.env['INIMD_HTML_OUT'], payload.html, 'utf8').catch(() => undefined)
     }
 
     printWindow = new BrowserWindow({

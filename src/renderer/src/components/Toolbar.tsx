@@ -32,9 +32,9 @@ export function Toolbar(props: ToolbarProps): React.ReactElement {
 
   return (
     <div className="toolbar">
-      <div className="brand" title="مِداد — محرر Markdown عربي">
-        <span className="brand-mark">م</span>
-        <span className="brand-name">مِداد</span>
+      <div className="brand" title="INIMD — محرر Markdown عربي">
+        <span className="brand-mark">INI</span>
+        <span className="brand-name">INIMD</span>
       </div>
 
       <div className="toolbar-group">

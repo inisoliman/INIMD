@@ -30,7 +30,7 @@ const ARABIC_PHRASES: Record<string, string> = {
   'go to line': 'انتقل إلى السطر'
 }
 
-const midadTheme = EditorView.theme({
+const inimdTheme = EditorView.theme({
   '&': {
     height: '100%',
     backgroundColor: 'var(--editor-bg)',
@@ -101,7 +101,7 @@ const midadTheme = EditorView.theme({
   }
 })
 
-const midadHighlight = HighlightStyle.define([
+const inimdHighlight = HighlightStyle.define([
   { tag: tags.heading1, color: 'var(--syn-heading)', fontWeight: '700', fontSize: '1.35em' },
   { tag: tags.heading2, color: 'var(--syn-heading)', fontWeight: '700', fontSize: '1.2em' },
   { tag: tags.heading3, color: 'var(--syn-heading)', fontWeight: '700', fontSize: '1.1em' },
@@ -159,8 +159,8 @@ export function EditorPane({ tab, settings, onChange, onScrollRatio, onViewReady
           markdown({ base: markdownLanguage, codeLanguages: languages }),
           EditorView.lineWrapping,
           EditorState.phrases.of(ARABIC_PHRASES),
-          midadTheme,
-          syntaxHighlighting(midadHighlight),
+          inimdTheme,
+          syntaxHighlighting(inimdHighlight),
           EditorView.contentAttributes.of({
             spellcheck: settings.spellcheck ? 'true' : 'false',
             autocorrect: 'off',

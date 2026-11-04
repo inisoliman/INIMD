@@ -3,12 +3,12 @@ import type {
   ExportDocxPayload,
   ExportPdfPayload,
   MenuAction,
-  MidadApi,
+  INIMDApi,
   OpenedFile,
   Settings
 } from '../shared/types'
 
-const api: MidadApi = {
+const api: INIMDApi = {
   openFile: () => ipcRenderer.invoke('dialog:open'),
   openPath: (path: string): Promise<OpenedFile> => ipcRenderer.invoke('file:read', path),
   readFile: (path: string): Promise<OpenedFile> => ipcRenderer.invoke('file:read', path),

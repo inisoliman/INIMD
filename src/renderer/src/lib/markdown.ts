@@ -130,7 +130,7 @@ export function renderMarkdown(
   const html = DOMPurify.sanitize(raw, {
     ADD_ATTR: ['target', 'data-path', 'id', 'dir', 'loading'],
     ALLOWED_URI_REGEXP:
-      /^(?:(?:https?|mailto|tel|midad|file):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+      /^(?:(?:https?|mailto|tel|inimd|file):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
     FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover']
   })

@@ -639,9 +639,9 @@ export async function buildDocxFile(payload: ExportDocxPayload, fontFamily?: str
   })
 
   const doc = new Document({
-    creator: 'Midad',
+    creator: 'INIMD',
     title: payload.defaultName,
-    description: `تم التصدير من مِداد`,
+    description: `تم التصدير من INIMD`,
     styles: {
       default: {
         document: {
