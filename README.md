@@ -218,14 +218,25 @@ gh auth login
 git push origin main
 ```
 
-ولإصدار جديد:
+ولإصدار جديد (على اتصال بطيء، أنشئ الإصدار كمسودة ثم ارفع الأصول ملفًا ملفًا):
 
 ```bash
-gh release create v1.1.1 "release/INIMD-Setup-1.1.1.exe" "release/INIMD-Portable-1.1.1.exe" "release/latest.yml" --title "INIMD 1.1.1" --notes "ملاحظات الإصدار."
+# 1) مسودة فارغة (لا تُنشَر حتى تنتهي كل الأصول)
+gh release create v1.1.1 --draft --title "INIMD 1.1.1" --notes "ملاحظات الإصدار."
+
+# 2) الرفع منفصلًا مع إعادة المحاولة عند انقطاع الاتصال
+gh release upload v1.1.1 "release/latest.yml" "release/INIMD-Setup-1.1.1.exe.blockmap" --clobber
+gh release upload v1.1.1 "release/INIMD-Setup-1.1.1.exe" --clobber
+gh release upload v1.1.1 "release/INIMD-Portable-1.1.1.exe" --clobber
+
+# 3) النشر كـ Latest بعد التحقق من الأصول
+gh release edit v1.1.1 --draft=false --latest
 
 # النسخة الخفيفة (prerelease، لا تلمس latest)
 gh release create lite-v1.0.0 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.0.0_x64-setup.exe" --prerelease --title "INIMD Lite 1.0.0" --notes "نسخة خفيفة تجريبية."
 ```
+
+> إن رفعت كل الملفات في أمر `gh release create` واحد على اتصال بطيء فقد يفشل بـ `HTTP 408: Upload body timed out`. الطريقة أعلاه تتجنّب ذلك.
 
 > يرفع GitHub الأصول ويستبدل المسافات في أسماء الملفات بنقاط، فيصبح الأصل `INIMD.Lite_1.0.0_x64-setup.exe`.
 
