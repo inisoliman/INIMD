@@ -10,21 +10,25 @@
 
 أحدث إصدار جاهز للتثبيت: [github.com/inisoliman/INIMD/releases](https://github.com/inisoliman/INIMD/releases/latest)
 
-- `INIMD-Setup-1.0.0.exe` — مثبّت NSIS (للمستخدم الحالي، بدون صلاحيات مدير).
-- `INIMD-Portable-1.0.0.exe` — نسخة محمولة لا تحتاج تركيب.
+- `INIMD-Setup-1.1.0.exe` — مثبّت NSIS (للمستخدم الحالي، بدون صلاحيات مدير).
+- `INIMD-Portable-1.1.0.exe` — نسخة محمولة لا تحتاج تركيب.
 
 ## المزايا
 
+- **واجهة عربية وإنجليزية**: تبديل اللغة من الإعدادات (أو `Ctrl + ,`) يغيّر الواجهة والقوائم والحوارات ورسائل التصدير فوراً، مع حفظ الاختيار.
 - **ربط تلقائي بملفات `.md` و`.markdown`** عند التركيب: نقرة مزدوجة من مستكشف ويندوز تفتح الملف في INIMD، مع عنصر «فتح بواسطة».
 - **دعم عربي كامل**: كشف اتجاه تلقائي (RTL/LTR)، تبديل يدوي لكل ملف، خطوط عربية، تباعد أسطر مريح، وعزل ثنائي الاتجاه للأكواد والروابط.
 - **تحرير ومعاينة**: عرض مقسوم بمزامنة تمرير، أو تحرير فقط، أو معاينة فقط، مع فهرس عناوين جانبي وقائمة ملفات حديثة.
-- **محرر CodeMirror 6**: تمييز صياغة Markdown، إكمال تلقائي، بحث واستبدال بواجهة عربية، حزم كود، تراجع/إعادة.
+- **بحث داخل المعاينة**: `Ctrl + F` في وضع المعاينة (أو في العرض المقسوم دون التركيز على المحرر) يفتح شريط بحث يظلّل كل المطابقات ويقفز بينها مع عدّاد، دون إعادة توليد الصفحة.
+- **محرر CodeMirror 6**: تمييز صياغة Markdown، إكمال تلقائي، بحث واستبدال بواجهة عربية أو إنجليزية، حزم كود، تراجع/إعادة.
 - **تصدير PDF**: بجودة الطباعة، مقاسات A4/Letter، هوامش قابلة للضبط، أرقام صفحات اختيارية، جداول وصور ونص عربي متصل.
 - **تصدير Word**: ملف `.docx` حقيقي بأنماط عناوين وجداول وقوائم، مع ضبط اتجاه RTL وخصائص `w:rtl` للنصوص العربية.
-- **حفظ تلقائي** اختياري، تنبيه التغييرات غير المحفوظة، استرجاع الملف عند تغيّره خارجياً.
+- **تحديث تلقائي من GitHub**: يفحص البرنامج الإصدارات الجديدة عند الإقلاع (قابل للتعطيل)، ويُظهر شريط إشعار عند توفّر تحديث مع زر تنزيل وتثبيت وإعادة تشغيل.
+- **متابعة الملف على القرص**: إذا عُدّل الملف المحفوظ من محرر آخر يُعيد INIMD تحميله تلقائياً، وإن كانت لديك تغييرات غير محفوظة يسألك قبل الاستبدال.
+- **حفظ تلقائي** اختياري، وتنبيه التغييرات غير المحفوظة قبل الإغلاق.
 - **ثيمات**: فاتح/داكن/تلقائي، وأحجام خطوط قابلة للضبط.
 - **أمان**: عزل سياق (`contextIsolation`)، sandbox، تعطيل `nodeIntegration`، وتنقية HTML الناتج عبر DOMPurify.
-- يعمل **دون اتصال بالإنترنت** بالكامل.
+- يعمل **دون اتصال بالإنترنت** بالكامل (الإنترنت مطلوب فقط لفحص التحديثات).
 
 ## لقطات
 
@@ -32,9 +36,13 @@
 | --- | --- |
 | ![الواجهة](docs/screenshot-main.png) | ![المعاينة](docs/screenshot-preview.png) |
 
-| الوضع الداكن |
-| --- |
-| ![الوضع الداكن](docs/screenshot-dark.png) |
+| الوضع الداكن | بحث المعاينة (`Ctrl + F`) |
+| --- | --- |
+| ![الوضع الداكن](docs/screenshot-dark.png) | ![بحث المعاينة](docs/screenshot-find.png) |
+
+| الواجهة الإنجليزية | إعدادات اللغة والتحديثات |
+| --- | --- |
+| ![الواجهة الإنجليزية](docs/screenshot-english.png) | ![الإعدادات](docs/screenshot-english-settings.png) |
 
 ## نماذج المخرجات
 
@@ -64,11 +72,14 @@ npm run typecheck
 # اختبار آلي خاطف (يولّد PDF وWord في مجلد مؤقت)
 npm run selftest
 
-# اختبار واجهة كامل عبر Playwright: فتح ملف عربي، تحرير، حفظ، تصدير PDF وWord
+# اختبار واجهة كامل عبر Playwright: فتح ملف عربي، تحرير، حفظ، بحث المعاينة، تبديل اللغة، تصدير PDF وWord
 npm run check:ui
 
 # التحقق من نسخة التثبيت المبنية في release/win-unpacked
 npm run check:packaged
+
+# التحقق من نظام التحديث في النسخة المبنية (يتصل بـ GitHub)
+npm run check:update
 
 # إعادة توليد نماذج المخرجات في docs/samples
 npm run sample:export
@@ -82,10 +93,23 @@ npm run dist:portable
 
 تجد المخرجات في مجلد `release/`:
 
-- `INIMD-Setup-1.0.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
-- `INIMD-Portable-1.0.0.exe` — نسخة محمولة.
+- `INIMD-Setup-1.1.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
+- `INIMD-Portable-1.1.0.exe` — نسخة محمولة.
+- `latest.yml` — بيانات التحديث التي يقرأها `electron-updater`.
 
 > **ربط ملفات `.md`:** يسجّل المثبّت INIMD كبرنامج لفتح ملفات Markdown، لكن ويندوز 10/11 قد يحتفظ بالبرنامج الافتراضي السابق. لتثبيته افتراضياً: انقر بالزر الأيمن على أي ملف `.md` ← **فتح باستخدام** ← **اختيار تطبيق آخر** ← اختر **INIMD** ← **دائماً**.
+
+## التحديثات
+
+يفحص INIMD التحديثات عند الإقلاع افتراضياً، ويمكن تعطيل ذلك من **الإعدادات ← التحديثات** أو الضغط على **تحقق الآن**.
+
+بما أن المستودع **خاص (private)**، يحتاج فحص التحديثات إلى توكن GitHub بصلاحية `repo`:
+
+1. أنشئ توكن Personal Access Token من [github.com/settings/tokens](https://github.com/settings/tokens).
+2. الصقه في **الإعدادات ← التحديثات ← توكن GitHub** (يُحفظ محلياً على جهازك فقط).
+3. بديلاً، عيّن متغير البيئة `INIMD_GH_TOKEN` أو `GH_TOKEN` قبل تشغيل البرنامج.
+
+الملفات التي يحتاجها التحديث في كل إصدار: `latest.yml` مع المثبّت `INIMD-Setup-x.y.z.exe` (و ملف `.blockmap` إن وُجد). انشرها مع الإصدار على GitHub حتى يعمل التحديث التلقائي.
 
 ### ملاحظة حول SmartScreen
 
@@ -100,7 +124,7 @@ npm run dist:portable
 | `Ctrl + S` | حفظ |
 | `Ctrl + Shift + S` | حفظ باسم |
 | `Ctrl + W` | إغلاق التبويب |
-| `Ctrl + F` | بحث واستبدال |
+| `Ctrl + F` | بحث في المعاينة (وضع المعاينة) أو بحث/استبدال في المحرر |
 | `Ctrl + B` | الشريط الجانبي |
 | `Ctrl + Shift + V` | تبديل المعاينة |
 | `Ctrl + Alt + P` | تصدير PDF |
@@ -112,18 +136,19 @@ npm run dist:portable
 ```
 src/
   main/            عملية Electron الرئيسية
-    index.ts       النافذة، القائمة، IPC، ربط الملفات، بروتوكول الصور
+    index.ts       النافذة، القائمة، IPC، ربط الملفات، بروتوكول الصور، مراقبة الملفات
     docx.ts        محوّل Markdown → docx مع دعم RTL
     pdf.ts         تصدير PDF عبر printToPDF
     files.ts       قراءة الملفات وترميزاتها
     store.ts       الإعدادات والملفات الحديثة
+    updater.ts     فحص التحديثات والتنزيل والتثبيت عبر electron-updater
   preload/         جسر آمن (contextBridge)
   renderer/        واجهة React
     src/
-      components/  الواجهة: المحرر، المعاينة، التبويبات، الإعدادات…
-      lib/         markdown، print، المسارات، الإحصاءات
+      components/  الواجهة: المحرر، المعاينة، البحث، التبويبات، الإعدادات…
+      lib/         markdown، print، find، i18n، المسارات، الإحصاءات
       styles/      CSS
-  shared/          أنواع مشتركة
+  shared/          أنواع مشتركة وقاموس الترجمة (i18n.ts)
 build/             الأيقونات وإعدادات المثبّت
 scripts/           توليد الأيقونات والاختبارات الآلية
 ```
@@ -137,7 +162,7 @@ Electron · electron-vite · React 19 · TypeScript · CodeMirror 6 · markdown-
 المستودع خاص (private) باسم `INIMD` على حساب `inisoliman`:
 <https://github.com/inisoliman/INIMD>
 
-الإصدار `v1.0.0` مرفوع مع المثبّت والنسخة المحمولة. لتحديث النسخة من جهاز آخر:
+الإصدار `v1.1.0` هو الإصدار الحالي، ويضم المثبّت والنسخة المحمولة و`latest.yml` لأجل التحديث التلقائي. لتحديث النسخة من جهاز آخر:
 
 ```bash
 gh auth login
@@ -147,8 +172,14 @@ git push origin main
 ولإصدار جديد:
 
 ```bash
-gh release create v1.1.0 "release/INIMD-Setup-1.1.0.exe" "release/INIMD-Portable-1.1.0.exe" --title "INIMD 1.1.0" --notes "ملاحظات الإصدار."
+gh release create v1.1.0 "release/INIMD-Setup-1.1.0.exe" "release/INIMD-Portable-1.1.0.exe" "release/latest.yml" --title "INIMD 1.1.0" --notes "ملاحظات الإصدار."
 ```
+
+> إن كان المستودع خاصاً، أضف التوكن إلى الإعدادات (أو `INIMD_GH_TOKEN`) كما في قسم **التحديثات** أعلاه.
+
+## English
+
+INIMD is a lightweight, Arabic-first Markdown desktop editor for Windows by **INI** (contact: [ibrahim.noshy@hotmail.com](mailto:ibrahim.noshy@hotmail.com)). It offers a bilingual Arabic/English interface, RTL/LTR auto-direction, split preview with synced scrolling, in-preview find (`Ctrl + F`), offline PDF and Word export, optional autosave, reload on external file changes, and GitHub-based auto-update. Install per-user (no admin rights) from the [latest release](https://github.com/inisoliman/INIMD/releases/latest); the repository is private, so update checks need a `repo` GitHub token in **Settings → Updates**.
 
 ## تطوير
 

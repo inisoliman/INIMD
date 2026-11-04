@@ -1,9 +1,29 @@
+import type { Language } from './i18n'
+
 export type Direction = 'rtl' | 'ltr'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type LayoutMode = 'split' | 'editor' | 'preview'
 export type PageSize = 'A4' | 'Letter'
+export type UpdateState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'not-available'
+  | 'error'
+  | 'disabled'
+
+export interface UpdateStatus {
+  state: UpdateState
+  version?: string
+  percent?: number
+  message?: string
+  checkedAt?: number
+}
 
 export interface Settings {
+  language: Language
   theme: ThemeMode
   fontFamily: string
   fontSize: number
@@ -16,9 +36,12 @@ export interface Settings {
   showToc: boolean
   editorWidth: number
   spellcheck: boolean
+  autoUpdate: boolean
+  updateToken: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  language: 'ar',
   theme: 'light',
   fontFamily: 'Segoe UI',
   fontSize: 16,
@@ -30,7 +53,9 @@ export const DEFAULT_SETTINGS: Settings = {
   pageNumbers: true,
   showToc: true,
   editorWidth: 50,
-  spellcheck: true
+  spellcheck: true,
+  autoUpdate: true,
+  updateToken: ''
 }
 
 export const FONT_CHOICES = [
@@ -60,6 +85,11 @@ export interface RecentFile {
   openedAt: number
 }
 
+export interface FileChange {
+  path: string
+  mtimeMs: number
+}
+
 export interface ExportResult {
   ok: boolean
   canceled?: boolean
@@ -74,6 +104,7 @@ export interface ExportPdfPayload {
   pageNumbers: boolean
   margin: number
   suggestedDir?: string
+  language?: Language
 }
 
 export interface ExportDocxPayload {
@@ -95,6 +126,8 @@ export type MenuAction =
   | 'toggle-preview'
   | 'toggle-toc'
   | 'find'
+  | 'find-preview'
+  | 'check-updates'
   | 'settings'
   | 'about'
   | 'guide'
@@ -117,6 +150,13 @@ export interface INIMDApi {
   openWithSystem(path: string): Promise<void>
   showItemInFolder(path: string): Promise<void>
   getVersion(): Promise<string>
+  checkForUpdates(): Promise<UpdateStatus>
+  downloadUpdate(): Promise<UpdateStatus>
+  installUpdate(): void
+  onUpdateStatus(cb: (status: UpdateStatus) => void): () => void
+  watchFile(path: string): Promise<void>
+  unwatchFile(path: string): Promise<void>
+  onFileChanged(cb: (change: FileChange) => void): () => void
   getPathForFile(file: unknown): string
   onMenu(cb: (action: MenuAction) => void): () => void
   onOpenFile(cb: (file: OpenedFile) => void): () => void

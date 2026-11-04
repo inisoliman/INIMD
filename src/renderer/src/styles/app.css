@@ -1215,7 +1215,6 @@ html[dir='ltr'] .switch.on .knob {
   flex: 1;
   word-break: break-word;
   line-height: 1.6;
-  direction: rtl;
 }
 .toast.success {
   border-inline-start-color: var(--accent);
@@ -1235,4 +1234,83 @@ html[dir='ltr'] .switch.on .knob {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ---------------------------------------------------------------- */
+/* Updates                                                           */
+/* ---------------------------------------------------------------- */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 12.5px;
+}
+.update-banner span {
+  flex: 1;
+  min-width: 0;
+}
+.primary-btn.small,
+.ghost-btn.small {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
+.token-input {
+  min-width: 220px;
+  max-width: 280px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--fg);
+  font-size: 12px;
+  font-family: var(--ui-font);
+}
+.update-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.update-text {
+  flex: 1;
+  min-width: 160px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.update-actions {
+  display: flex;
+  gap: 8px;
+}
+.update-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.update-dot.checking,
+.update-dot.downloading {
+  background: #d1a03a;
+}
+.update-dot.available,
+.update-dot.downloaded {
+  background: var(--accent);
+}
+.update-dot.error {
+  background: var(--danger);
+}
+
+html[dir='ltr'] .cm-panel.cm-search {
+  direction: ltr;
 }

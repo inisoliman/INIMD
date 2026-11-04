@@ -2,10 +2,12 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
   ExportDocxPayload,
   ExportPdfPayload,
+  FileChange,
   MenuAction,
   INIMDApi,
   OpenedFile,
-  Settings
+  Settings,
+  UpdateStatus
 } from '../shared/types'
 
 const api: INIMDApi = {
@@ -27,6 +29,21 @@ const api: INIMDApi = {
   openWithSystem: (path: string) => ipcRenderer.invoke('shell:open-path', path),
   showItemInFolder: (path: string) => ipcRenderer.invoke('shell:show-item', path),
   getVersion: () => ipcRenderer.invoke('app:version'),
+  checkForUpdates: (): Promise<UpdateStatus> => ipcRenderer.invoke('update:check'),
+  downloadUpdate: (): Promise<UpdateStatus> => ipcRenderer.invoke('update:download'),
+  installUpdate: () => ipcRenderer.send('update:install'),
+  onUpdateStatus: (cb: (status: UpdateStatus) => void) => {
+    const listener = (_event: unknown, status: UpdateStatus): void => cb(status)
+    ipcRenderer.on('update:status', listener)
+    return () => ipcRenderer.removeListener('update:status', listener)
+  },
+  watchFile: (path: string) => ipcRenderer.invoke('file:watch', path),
+  unwatchFile: (path: string) => ipcRenderer.invoke('file:unwatch', path),
+  onFileChanged: (cb: (change: FileChange) => void) => {
+    const listener = (_event: unknown, change: FileChange): void => cb(change)
+    ipcRenderer.on('app:file-changed', listener)
+    return () => ipcRenderer.removeListener('app:file-changed', listener)
+  },
   getPathForFile: (file: unknown) => {
     try {
       return webUtils.getPathForFile(file as File)

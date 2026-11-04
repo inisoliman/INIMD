@@ -1,4 +1,5 @@
 import type { RecentFile } from '@shared/types'
+import { useI18n } from '../lib/i18n'
 import { relativeTime } from '../lib/misc'
 import { Icon } from './Icon'
 
@@ -10,21 +11,23 @@ interface WelcomeProps {
 }
 
 export function Welcome({ recent, onNew, onOpen, onOpenRecent }: WelcomeProps): React.ReactElement {
+  const { t, language } = useI18n()
+
   return (
     <div className="welcome">
       <div className="welcome-inner">
         <div className="welcome-mark">INI</div>
         <h1>INIMD</h1>
-        <p className="welcome-sub">محرر وعارض Markdown عربي، بتصدير مباشر إلى PDF وWord.</p>
+        <p className="welcome-sub">{t('welcome.sub')}</p>
 
         <div className="welcome-actions">
           <button className="primary-btn" onClick={onNew}>
             <Icon name="new" size={17} />
-            ملف جديد
+            {t('welcome.newFile')}
           </button>
           <button className="ghost-btn" onClick={onOpen}>
             <Icon name="open" size={17} />
-            فتح ملف
+            {t('welcome.openFile')}
           </button>
         </div>
 
@@ -32,22 +35,22 @@ export function Welcome({ recent, onNew, onOpen, onOpenRecent }: WelcomeProps): 
           <div className="feature">
             <span className="feature-icon">↔</span>
             <div>
-              <strong>دعم عربي كامل</strong>
-              <span>اتجاه RTL تلقائي وخطوط عربية وتصحيح إملائي.</span>
+              <strong>{t('welcome.feature1Title')}</strong>
+              <span>{t('welcome.feature1Body')}</span>
             </div>
           </div>
           <div className="feature">
             <span className="feature-icon">◫</span>
             <div>
-              <strong>معاينة فورية</strong>
-              <span>محرر ومعاينة جنباً إلى جنب مع فهرس العناوين.</span>
+              <strong>{t('welcome.feature2Title')}</strong>
+              <span>{t('welcome.feature2Body')}</span>
             </div>
           </div>
           <div className="feature">
             <span className="feature-icon">⇩</span>
             <div>
-              <strong>تصدير احترافي</strong>
-              <span>PDF بجودة الطباعة وWord قابل للتحرير.</span>
+              <strong>{t('welcome.feature3Title')}</strong>
+              <span>{t('welcome.feature3Body')}</span>
             </div>
           </div>
         </div>
@@ -56,23 +59,21 @@ export function Welcome({ recent, onNew, onOpen, onOpenRecent }: WelcomeProps): 
           <div className="welcome-recent">
             <div className="welcome-recent-head">
               <Icon name="folder" size={15} />
-              <span>تابع من حيث توقفت</span>
+              <span>{t('welcome.continue')}</span>
             </div>
             <div className="welcome-recent-list">
               {recent.slice(0, 6).map((file) => (
                 <button key={file.path} className="welcome-recent-item" onClick={() => onOpenRecent(file.path)}>
                   <Icon name="file" size={15} />
                   <span className="recent-name">{file.name}</span>
-                  <span className="recent-meta">{relativeTime(file.openedAt)}</span>
+                  <span className="recent-meta">{relativeTime(file.openedAt, language)}</span>
                 </button>
               ))}
             </div>
           </div>
         ) : null}
 
-        <div className="welcome-tip">
-          اسحب أي ملف <code>.md</code> وأفلته هنا، أو انقر نقراً مزدوجاً على الملف من مستكشف ويندوز بعد التركيب.
-        </div>
+        <div className="welcome-tip">{t('welcome.tip')}</div>
       </div>
     </div>
   )

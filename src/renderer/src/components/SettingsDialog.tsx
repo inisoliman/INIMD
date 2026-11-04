@@ -1,11 +1,17 @@
-import { DEFAULT_SETTINGS, FONT_CHOICES, type Settings } from '@shared/types'
+import { DEFAULT_SETTINGS, FONT_CHOICES, type Settings, type UpdateStatus } from '@shared/types'
+import { LANGUAGES } from '@shared/i18n'
+import { useI18n } from '../lib/i18n'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
 
 interface SettingsDialogProps {
   settings: Settings
   version: string
+  updateStatus: UpdateStatus
   onChange: (patch: Partial<Settings>) => void
+  onCheckUpdates: () => void
+  onDownloadUpdate: () => void
+  onInstallUpdate: () => void
   onClose: () => void
 }
 
@@ -39,45 +45,100 @@ function Toggle({
   )
 }
 
-export function SettingsDialog({ settings, version, onChange, onClose }: SettingsDialogProps): React.ReactElement {
+export function SettingsDialog({
+  settings,
+  version,
+  updateStatus,
+  onChange,
+  onCheckUpdates,
+  onDownloadUpdate,
+  onInstallUpdate,
+  onClose
+}: SettingsDialogProps): React.ReactElement {
+  const { t } = useI18n()
+
+  const updateMessage = ((): string => {
+    switch (updateStatus.state) {
+      case 'checking':
+        return t('settings.checking')
+      case 'available':
+        return t('settings.updateAvailable', { version: updateStatus.version ?? '' })
+      case 'downloading':
+        return t('settings.downloading', { percent: updateStatus.percent ?? 0 })
+      case 'downloaded':
+        return t('settings.updateReady', { version: updateStatus.version ?? '' })
+      case 'not-available':
+        return t('settings.upToDate', { version: updateStatus.version ?? version })
+      case 'error':
+        return t('settings.updateError', { error: updateStatus.message ?? '' })
+      case 'disabled':
+        return t('settings.updateDev')
+      default:
+        return t('settings.firstCheckHint')
+    }
+  })()
+
+  const busy = updateStatus.state === 'checking' || updateStatus.state === 'downloading'
+
   return (
     <Modal
-      title="الإعدادات"
+      title={t('settings.title')}
       onClose={onClose}
-      width={620}
+      width={640}
       footer={
         <div className="settings-footer">
-          <span className="version">INIMD {version}</span>
+          <span className="version">{t('settings.version', { version })}</span>
           <button className="ghost-btn" onClick={() => onChange(DEFAULT_SETTINGS)}>
-            استعادة الافتراضي
+            {t('settings.restore')}
           </button>
           <button className="primary-btn" onClick={onClose}>
-            تم
+            {t('settings.done')}
           </button>
         </div>
       }
     >
       <section className="settings-section">
         <h3>
-          <Icon name="sun" size={15} /> المظهر
+          <Icon name="sparkle" size={15} /> {t('settings.language')}
         </h3>
         <div className="setting-row">
-          <span className="setting-label">السمة</span>
+          <span className="setting-label">{t('settings.language')}</span>
+          <div className="segmented wide">
+            {LANGUAGES.map((item) => (
+              <button
+                key={item.id}
+                className={settings.language === item.id ? 'active' : ''}
+                onClick={() => onChange({ language: item.id })}
+              >
+                {item.native}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="setting-note">{t('settings.languageHint')}</p>
+      </section>
+
+      <section className="settings-section">
+        <h3>
+          <Icon name="sun" size={15} /> {t('settings.appearance')}
+        </h3>
+        <div className="setting-row">
+          <span className="setting-label">{t('settings.theme')}</span>
           <div className="segmented wide">
             <button className={settings.theme === 'light' ? 'active' : ''} onClick={() => onChange({ theme: 'light' })}>
-              فاتح
+              {t('theme.light')}
             </button>
             <button className={settings.theme === 'dark' ? 'active' : ''} onClick={() => onChange({ theme: 'dark' })}>
-              داكن
+              {t('theme.dark')}
             </button>
             <button className={settings.theme === 'system' ? 'active' : ''} onClick={() => onChange({ theme: 'system' })}>
-              تلقائي
+              {t('theme.system')}
             </button>
           </div>
         </div>
 
         <div className="setting-row">
-          <span className="setting-label">الخط</span>
+          <span className="setting-label">{t('settings.font')}</span>
           <select value={settings.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value })}>
             {FONT_CHOICES.map((font) => (
               <option key={font} value={font}>
@@ -89,7 +150,7 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
 
         <div className="setting-row">
           <span className="setting-label">
-            حجم الخط <b>{settings.fontSize}px</b>
+            {t('settings.fontSize')} <b>{settings.fontSize}px</b>
           </span>
           <input
             type="range"
@@ -103,7 +164,7 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
 
         <div className="setting-row">
           <span className="setting-label">
-            تباعد الأسطر <b>{settings.lineHeight.toFixed(1)}</b>
+            {t('settings.lineHeight')} <b>{settings.lineHeight.toFixed(1)}</b>
           </span>
           <input
             type="range"
@@ -115,18 +176,18 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
           />
         </div>
 
-        <p className="setting-note">ملاحظة: تتوفر الخطوط المثبتة على جهازك فقط. Segoe UI وTahoma متاحان دائماً على ويندوز.</p>
+        <p className="setting-note">{t('settings.fontNote')}</p>
       </section>
 
       <section className="settings-section">
         <h3>
-          <Icon name="edit" size={15} /> التحرير
+          <Icon name="edit" size={15} /> {t('settings.editing')}
         </h3>
         <Toggle
           checked={settings.autosave}
           onChange={(value) => onChange({ autosave: value })}
-          label="الحفظ التلقائي"
-          hint="حفظ الملف بعد ثانية من التوقف عن الكتابة."
+          label={t('settings.autosave')}
+          hint={t('settings.autosaveHint')}
         />
         <Toggle
           checked={settings.spellcheck}
@@ -134,28 +195,28 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
             onChange({ spellcheck: value })
             window.api.setSpellcheck(value)
           }}
-          label="التصحيح الإملائي"
-          hint="يستخدم قواميس ويندوز العربية والإنجليزية."
+          label={t('settings.spellcheck')}
+          hint={t('settings.spellcheckHint')}
         />
         <div className="setting-row">
-          <span className="setting-label">الاتجاه الافتراضي</span>
+          <span className="setting-label">{t('settings.defaultDirection')}</span>
           <select
             value={settings.defaultDirection}
             onChange={(event) => onChange({ defaultDirection: event.target.value as Settings['defaultDirection'] })}
           >
-            <option value="auto">تلقائي حسب المحتوى</option>
-            <option value="rtl">من اليمين إلى اليسار</option>
-            <option value="ltr">من اليسار إلى اليمين</option>
+            <option value="auto">{t('settings.directionAuto')}</option>
+            <option value="rtl">{t('settings.directionRtl')}</option>
+            <option value="ltr">{t('settings.directionLtr')}</option>
           </select>
         </div>
       </section>
 
       <section className="settings-section">
         <h3>
-          <Icon name="pdf" size={15} /> التصدير
+          <Icon name="pdf" size={15} /> {t('settings.export')}
         </h3>
         <div className="setting-row">
-          <span className="setting-label">حجم الصفحة</span>
+          <span className="setting-label">{t('settings.pageSize')}</span>
           <select value={settings.pageSize} onChange={(event) => onChange({ pageSize: event.target.value as Settings['pageSize'] })}>
             <option value="A4">A4</option>
             <option value="Letter">Letter</option>
@@ -163,7 +224,7 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
         </div>
         <div className="setting-row">
           <span className="setting-label">
-            الهوامش <b>{settings.margin}mm</b>
+            {t('settings.margins')} <b>{settings.margin}mm</b>
           </span>
           <input
             type="range"
@@ -177,9 +238,53 @@ export function SettingsDialog({ settings, version, onChange, onClose }: Setting
         <Toggle
           checked={settings.pageNumbers}
           onChange={(value) => onChange({ pageNumbers: value })}
-          label="أرقام الصفحات"
-          hint="إضافة تذييل «صفحة X من Y» في PDF."
+          label={t('settings.pageNumbers')}
+          hint={t('settings.pageNumbersHint')}
         />
+      </section>
+
+      <section className="settings-section">
+        <h3>
+          <Icon name="sparkle" size={15} /> {t('settings.updates')}
+        </h3>
+        <Toggle
+          checked={settings.autoUpdate}
+          onChange={(value) => onChange({ autoUpdate: value })}
+          label={t('settings.autoUpdate')}
+          hint={t('settings.autoUpdateHint')}
+        />
+        <div className="setting-row">
+          <span className="setting-label">{t('settings.updateToken')}</span>
+          <input
+            type="password"
+            className="token-input"
+            dir="ltr"
+            value={settings.updateToken}
+            placeholder="ghp_…"
+            onChange={(event) => onChange({ updateToken: event.target.value.trim() })}
+          />
+        </div>
+        <p className="setting-note">{t('settings.updateTokenHint')}</p>
+
+        <div className="update-state">
+          <span className={`update-dot ${updateStatus.state}`} />
+          <span className="update-text">{updateMessage}</span>
+          <div className="update-actions">
+            <button className="ghost-btn" onClick={onCheckUpdates} disabled={busy}>
+              {updateStatus.state === 'checking' ? t('settings.checking') : t('settings.checkNow')}
+            </button>
+            {updateStatus.state === 'available' ? (
+              <button className="primary-btn" onClick={onDownloadUpdate}>
+                {t('settings.download')}
+              </button>
+            ) : null}
+            {updateStatus.state === 'downloaded' ? (
+              <button className="primary-btn" onClick={onInstallUpdate}>
+                {t('settings.installNow')}
+              </button>
+            ) : null}
+          </div>
+        </div>
       </section>
     </Modal>
   )

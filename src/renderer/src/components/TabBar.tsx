@@ -1,4 +1,5 @@
 import type { Tab } from '../types'
+import { useI18n } from '../lib/i18n'
 import { Icon } from './Icon'
 
 interface TabBarProps {
@@ -10,6 +11,8 @@ interface TabBarProps {
 }
 
 export function TabBar({ tabs, activeId, onSelect, onClose, onNew }: TabBarProps): React.ReactElement {
+  const { t } = useI18n()
+
   return (
     <div className="tabbar">
       <div className="tabs" role="tablist">
@@ -31,7 +34,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onNew }: TabBarProps
               <span className="tab-name">{tab.name}</span>
               <button
                 className="tab-close"
-                title="إغلاق (Ctrl+W)"
+                title={t('tab.close')}
                 onClick={(event) => {
                   event.stopPropagation()
                   onClose(tab.id)
@@ -43,7 +46,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onNew }: TabBarProps
           )
         })}
       </div>
-      <button className="tab-new" onClick={onNew} title="تبويب جديد (Ctrl+N)">
+      <button className="tab-new" onClick={onNew} title={t('tab.new')}>
         <Icon name="new" size={16} />
       </button>
     </div>

@@ -1,11 +1,12 @@
 import type { Direction } from '@shared/types'
+import { translate, type Language } from '@shared/i18n'
 
 const ARABIC_RANGE = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/
 const ARABIC_LETTER = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/g
 const LATIN_LETTER = /[A-Za-z]/g
 
 /**
- * يحدّد اتجاه المستند من أول حروفه الفعلية.
+ * يحدّد اتجاه المستند من أغلب حروفه الفعلية.
  * يُهمل تنسيق Markdown والروابط والوسوم كي لا يحرف عنوان يبدأ باسم لاتيني
  * (مثل «INIMD») اتجاه مستند عربي بالكامل.
  */
@@ -43,20 +44,22 @@ export function countLines(text: string): number {
   return text.length ? text.split(/\r\n|\r|\n/).length : 0
 }
 
-export function formatCount(value: number): string {
-  return new Intl.NumberFormat('ar-EG').format(value)
+export function formatCount(value: number, language: Language = 'ar'): string {
+  return new Intl.NumberFormat(language === 'ar' ? 'ar-EG' : 'en-US').format(value)
 }
 
-export function relativeTime(timestamp: number): string {
+export function relativeTime(timestamp: number, language: Language = 'ar'): string {
   const diff = Date.now() - timestamp
   const minute = 60_000
   const hour = 3_600_000
   const day = 86_400_000
-  if (diff < minute) return 'الآن'
-  if (diff < hour) return `قبل ${Math.floor(diff / minute)} دقيقة`
-  if (diff < day) return `قبل ${Math.floor(diff / hour)} ساعة`
-  if (diff < day * 7) return `قبل ${Math.floor(diff / day)} يوم`
-  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(timestamp)
+  if (diff < minute) return translate(language, 'time.now')
+  if (diff < hour) return translate(language, 'time.minutes', { count: Math.floor(diff / minute) })
+  if (diff < day) return translate(language, 'time.hours', { count: Math.floor(diff / hour) })
+  if (diff < day * 7) return translate(language, 'time.days', { count: Math.floor(diff / day) })
+  return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium' }).format(
+    timestamp
+  )
 }
 
 export function makeId(): string {

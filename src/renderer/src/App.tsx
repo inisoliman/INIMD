@@ -4,13 +4,16 @@ import type { EditorView } from '@codemirror/view'
 import {
   DEFAULT_SETTINGS,
   type Direction,
+  type FileChange,
   type LayoutMode,
   type MenuAction,
   type OpenedFile,
   type RecentFile,
   type Settings,
-  type ThemeMode
+  type ThemeMode,
+  type UpdateStatus
 } from '@shared/types'
+import { createTranslator, type TFunction } from '@shared/i18n'
 import { EditorPane } from './components/EditorPane'
 import { GuideDialog } from './components/GuideDialog'
 import { Icon } from './components/Icon'
@@ -22,6 +25,7 @@ import { StatusBar } from './components/StatusBar'
 import { TabBar } from './components/TabBar'
 import { Toolbar } from './components/Toolbar'
 import { Welcome } from './components/Welcome'
+import { I18nProvider } from './lib/i18n'
 import { renderMarkdown } from './lib/markdown'
 import { baseNameOf, dirnameOf, stripExtension } from './lib/paths'
 import { countLines, countWords, detectDirection, makeId } from './lib/misc'
@@ -42,11 +46,11 @@ interface DialogState {
 
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 
-function emptyTab(index: number, direction: Direction): Tab {
+function emptyTab(index: number, direction: Direction, t: TFunction): Tab {
   return {
     id: makeId(),
     path: null,
-    name: `مستند ${index}.md`,
+    name: t('app.untitled', { n: index }),
     content: '',
     savedContent: '',
     mtimeMs: null,
@@ -67,6 +71,8 @@ export default function App(): React.ReactElement {
   const [editorWidth, setEditorWidth] = useState(50)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
   const [dialog, setDialog] = useState<DialogState | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loaded, setLoaded] = useState(false)
@@ -77,14 +83,21 @@ export default function App(): React.ReactElement {
   const editorViewRef = useRef<EditorView | null>(null)
   const previewRef = useRef<HTMLDivElement | null>(null)
   const panesRef = useRef<HTMLDivElement | null>(null)
+  const layoutRef = useRef<LayoutMode>('split')
   const untitledCounter = useRef(1)
   const toastTimers = useRef<number[]>([])
   const editorWidthRef = useRef(50)
+  const watchedRef = useRef<Set<string>>(new Set())
+
+  const t = useMemo(() => createTranslator(settings.language), [settings.language])
+  const tRef = useRef(t)
+  tRef.current = t
 
   tabsRef.current = tabs
   activeIdRef.current = activeId
   settingsRef.current = settings
   editorWidthRef.current = editorWidth
+  layoutRef.current = layout
 
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? null
   const deferredContent = useDeferredValue(activeTab?.content ?? '')
@@ -170,8 +183,13 @@ export default function App(): React.ReactElement {
   }, [layout, sidebar])
 
   /* -------------------------------------------------------------- */
-  /* Theme                                                          */
+  /* Language + theme                                               */
   /* -------------------------------------------------------------- */
+  useEffect(() => {
+    document.documentElement.lang = settings.language
+    document.documentElement.dir = settings.language === 'ar' ? 'rtl' : 'ltr'
+  }, [settings.language])
+
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     const apply = (): void => {
@@ -195,6 +213,24 @@ export default function App(): React.ReactElement {
   useEffect(() => {
     document.title = activeTab ? `${activeTab.name} — INIMD` : 'INIMD'
   }, [activeTab?.name])
+
+  /* -------------------------------------------------------------- */
+  /* Updates                                                        */
+  /* -------------------------------------------------------------- */
+  useEffect(() => {
+    const off = window.api.onUpdateStatus((status) => {
+      setUpdateStatus(status)
+      const translate = tRef.current
+      if (status.state === 'downloaded' && status.version) {
+        notify(translate('update.downloaded', { version: status.version }), 'success')
+      } else if (status.state === 'available' && status.version) {
+        notify(translate('update.available', { version: status.version }), 'info')
+      } else if (status.state === 'error' && status.message) {
+        notify(translate('update.error', { error: status.message }), 'error')
+      }
+    })
+    return off
+  }, [notify])
 
   /* -------------------------------------------------------------- */
   /* Settings                                                       */
@@ -246,7 +282,10 @@ export default function App(): React.ReactElement {
         const file = await window.api.openPath(path)
         addFromOpened(file)
       } catch (error) {
-        notify(`تعذّر فتح الملف: ${error instanceof Error ? error.message : String(error)}`, 'error')
+        notify(
+          tRef.current('app.openFailed', { error: error instanceof Error ? error.message : String(error) }),
+          'error'
+        )
       }
     },
     [addFromOpened, notify]
@@ -257,14 +296,17 @@ export default function App(): React.ReactElement {
       const file = await window.api.openFile()
       if (file) addFromOpened(file)
     } catch (error) {
-      notify(`تعذّر فتح الملف: ${error instanceof Error ? error.message : String(error)}`, 'error')
+      notify(
+        tRef.current('app.openFailed', { error: error instanceof Error ? error.message : String(error) }),
+        'error'
+      )
     }
   }, [addFromOpened, notify])
 
   const newTab = useCallback(() => {
     const direction: Direction =
       settingsRef.current.defaultDirection === 'auto' ? 'rtl' : settingsRef.current.defaultDirection
-    const tab = emptyTab(untitledCounter.current, direction)
+    const tab = emptyTab(untitledCounter.current, direction, tRef.current)
     untitledCounter.current += 1
     setTabs((prev) => [...prev, tab])
     setActiveId(tab.id)
@@ -306,7 +348,7 @@ export default function App(): React.ReactElement {
             )
           )
           void refreshRecent()
-          notify(`تم حفظ «${baseNameOf(result.path)}»`, 'success')
+          notify(tRef.current('app.savedAs', { name: baseNameOf(result.path) }), 'success')
         } else {
           const result = await window.api.saveFile(tab.path, tab.content)
           setTabs((prev) =>
@@ -319,7 +361,10 @@ export default function App(): React.ReactElement {
         }
         return true
       } catch (error) {
-        notify(`تعذّر الحفظ: ${error instanceof Error ? error.message : String(error)}`, 'error')
+        notify(
+          tRef.current('app.saveFailed', { error: error instanceof Error ? error.message : String(error) }),
+          'error'
+        )
         return false
       }
     },
@@ -343,12 +388,13 @@ export default function App(): React.ReactElement {
         closeNow(id)
         return
       }
+      const translate = tRef.current
       setDialog({
-        title: 'تغييرات غير محفوظة',
-        message: `الملف «${tab.name}» يحتوي على تغييرات غير محفوظة. هل تريد حفظه قبل الإغلاق؟`,
+        title: translate('app.unsavedTitle'),
+        message: translate('app.unsavedMessage', { name: tab.name }),
         buttons: [
           {
-            label: 'حفظ وإغلاق',
+            label: translate('app.saveAndClose'),
             kind: 'primary',
             action: () => {
               void saveTab(id).then((ok) => {
@@ -356,8 +402,8 @@ export default function App(): React.ReactElement {
               })
             }
           },
-          { label: 'تجاهل التغييرات', kind: 'danger', action: () => closeNow(id) },
-          { label: 'إلغاء', kind: 'ghost', action: () => undefined }
+          { label: translate('app.discardChanges'), kind: 'danger', action: () => closeNow(id) },
+          { label: translate('app.cancel'), kind: 'ghost', action: () => undefined }
         ]
       })
     },
@@ -387,6 +433,100 @@ export default function App(): React.ReactElement {
       )
     )
   }, [])
+
+  /* -------------------------------------------------------------- */
+  /* External file changes (any other editor)                       */
+  /* -------------------------------------------------------------- */
+  const applyDiskContent = useCallback((tabId: string, file: OpenedFile) => {
+    setTabs((prev) =>
+      prev.map((item) =>
+        item.id === tabId
+          ? { ...item, content: file.content, savedContent: file.content, mtimeMs: file.mtimeMs }
+          : item
+      )
+    )
+  }, [])
+
+  const handleFileChange = useCallback(
+    async (change: FileChange) => {
+      const tab = tabsRef.current.find(
+        (item) => item.path && item.path.toLowerCase() === change.path.toLowerCase()
+      )
+      if (!tab) return
+      if (change.mtimeMs <= (tab.mtimeMs ?? 0) + 5) return
+      try {
+        const file = await window.api.readFile(change.path)
+        const current = tabsRef.current.find((item) => item.id === tab.id)
+        if (!current) return
+        if (file.content === current.content) {
+          setTabs((prev) =>
+            prev.map((item) => (item.id === current.id ? { ...item, mtimeMs: file.mtimeMs } : item))
+          )
+          return
+        }
+        if (current.content === current.savedContent) {
+          applyDiskContent(current.id, file)
+          notify(tRef.current('app.fileChangedOutside'), 'info')
+          return
+        }
+        const translate = tRef.current
+        setDialog({
+          title: translate('app.externalChangeTitle'),
+          message: translate('app.externalChangeMessage', { name: current.name }),
+          buttons: [
+            {
+              label: translate('app.reloadFile'),
+              kind: 'primary',
+              action: () => applyDiskContent(current.id, file)
+            },
+            {
+              label: translate('app.keepMine'),
+              kind: 'ghost',
+              action: () =>
+                setTabs((prev) =>
+                  prev.map((item) => (item.id === current.id ? { ...item, mtimeMs: file.mtimeMs } : item))
+                )
+            }
+          ]
+        })
+      } catch {
+        /* file may have vanished */
+      }
+    },
+    [applyDiskContent, notify]
+  )
+
+  const pathsKey = useMemo(
+    () =>
+      tabs
+        .map((tab) => tab.path ?? '')
+        .filter(Boolean)
+        .join('\u0000'),
+    [tabs]
+  )
+
+  useEffect(() => {
+    const next = new Set(pathsKey ? pathsKey.split('\u0000') : [])
+    for (const path of next) {
+      if (!watchedRef.current.has(path)) {
+        watchedRef.current.add(path)
+        void window.api.watchFile(path)
+      }
+    }
+    for (const path of Array.from(watchedRef.current)) {
+      if (!next.has(path)) {
+        watchedRef.current.delete(path)
+        void window.api.unwatchFile(path)
+      }
+    }
+  }, [pathsKey])
+
+  useEffect(() => {
+    const off = window.api.onFileChanged((change) => {
+      void handleFileChange(change)
+    })
+    return off
+  }, [handleFileChange])
 
   /* -------------------------------------------------------------- */
   /* Autosave                                                       */
@@ -426,10 +566,11 @@ export default function App(): React.ReactElement {
       pageSize: settingsRef.current.pageSize,
       pageNumbers: settingsRef.current.pageNumbers,
       margin: settingsRef.current.margin,
-      suggestedDir: baseDir
+      suggestedDir: baseDir,
+      language: settingsRef.current.language
     })
-    if (result.ok && result.path) notify(`تم تصدير PDF إلى ${result.path}`, 'success')
-    else if (result.error) notify(`فشل تصدير PDF: ${result.error}`, 'error')
+    if (result.ok && result.path) notify(tRef.current('app.pdfExported', { path: result.path }), 'success')
+    else if (result.error) notify(tRef.current('app.pdfFailed', { error: result.error }), 'error')
   }, [currentTab, notify])
 
   const exportDocx = useCallback(async () => {
@@ -443,12 +584,12 @@ export default function App(): React.ReactElement {
       rtl: tab.direction === 'rtl',
       suggestedDir: baseDir
     })
-    if (result.ok && result.path) notify(`تم تصدير Word إلى ${result.path}`, 'success')
-    else if (result.error) notify(`فشل تصدير Word: ${result.error}`, 'error')
+    if (result.ok && result.path) notify(tRef.current('app.docxExported', { path: result.path }), 'success')
+    else if (result.error) notify(tRef.current('app.docxFailed', { error: result.error }), 'error')
   }, [currentTab, notify])
 
   /* -------------------------------------------------------------- */
-  /* Window close + drag & drop + external changes                  */
+  /* Window close + drag & drop                                     */
   /* -------------------------------------------------------------- */
   useEffect(() => {
     const off = window.api.onBeforeClose(() => {
@@ -457,19 +598,20 @@ export default function App(): React.ReactElement {
         window.api.confirmClose(true)
         return
       }
+      const translate = tRef.current
       setDialog({
-        title: 'إغلاق INIMD',
-        message: `لديك ${dirty.length} ملف بها تغييرات غير محفوظة. ماذا تريد أن تفعل؟`,
+        title: translate('app.closeTitle'),
+        message: translate('app.closeMessage', { count: dirty.length }),
         buttons: [
           {
-            label: 'حفظ الكل والإغلاق',
+            label: translate('app.saveAllClose'),
             kind: 'primary',
             action: () => {
               void saveAll().then((ok) => window.api.confirmClose(ok))
             }
           },
-          { label: 'إغلاق بدون حفظ', kind: 'danger', action: () => window.api.confirmClose(true) },
-          { label: 'إلغاء', kind: 'ghost', action: () => window.api.confirmClose(false) }
+          { label: translate('app.closeWithoutSaving'), kind: 'danger', action: () => window.api.confirmClose(true) },
+          { label: translate('app.cancel'), kind: 'ghost', action: () => window.api.confirmClose(false) }
         ]
       })
     })
@@ -500,30 +642,40 @@ export default function App(): React.ReactElement {
     }
   }, [openPath])
 
-  useEffect(() => {
-    const onFocus = async (): Promise<void> => {
-      const tab = currentTab()
-      if (!tab?.path || tab.content !== tab.savedContent) return
-      try {
-        const stat = await window.api.statFile(tab.path)
-        if (stat.exists && stat.mtimeMs > (tab.mtimeMs ?? 0) + 10) {
-          const file = await window.api.readFile(tab.path)
-          setTabs((prev) =>
-            prev.map((item) =>
-              item.id === tab.id
-                ? { ...item, content: file.content, savedContent: file.content, mtimeMs: file.mtimeMs }
-                : item
-            )
-          )
-          notify('تم تحديث الملف بعد تغيير خارجي')
-        }
-      } catch {
-        /* ignore */
-      }
+  /* -------------------------------------------------------------- */
+  /* Find (editor + preview)                                        */
+  /* -------------------------------------------------------------- */
+  const openFind = useCallback(() => {
+    const mode = layoutRef.current
+    const active = document.activeElement as HTMLElement | null
+    const inEditor = Boolean(active?.closest('.cm-editor'))
+    if (mode === 'preview' || (mode === 'split' && !inEditor)) {
+      setFindOpen(true)
+      window.requestAnimationFrame(() => {
+        const input = document.querySelector('.preview-find input') as HTMLInputElement | null
+        input?.focus()
+        input?.select()
+      })
+      return
     }
-    window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
-  }, [currentTab, notify])
+    const view = editorViewRef.current
+    if (view) {
+      view.focus()
+      openSearchPanel(view)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented) return
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return
+      if (event.key.toLowerCase() !== 'f') return
+      event.preventDefault()
+      openFind()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [openFind])
 
   /* -------------------------------------------------------------- */
   /* Menu                                                           */
@@ -548,11 +700,10 @@ export default function App(): React.ReactElement {
     },
     'toggle-preview': () => setLayout((prev) => (prev === 'preview' ? 'split' : 'preview')),
     'toggle-toc': () => setSidebar((prev) => !prev),
-    find: () => {
-      if (editorViewRef.current) {
-        editorViewRef.current.focus()
-        openSearchPanel(editorViewRef.current)
-      }
+    find: openFind,
+    'check-updates': () => {
+      setSettingsOpen(true)
+      void window.api.checkForUpdates().then(setUpdateStatus)
     },
     settings: () => setSettingsOpen(true),
     guide: () => setGuideOpen(true),
@@ -629,10 +780,6 @@ export default function App(): React.ReactElement {
     updateSettings({ theme: order[(index + 1) % order.length] })
   }, [updateSettings])
 
-  const togglePreview = useCallback(() => {
-    setLayout((prev) => (prev === 'preview' ? 'split' : 'preview'))
-  }, [])
-
   if (!loaded) {
     return (
       <div className="boot">
@@ -642,148 +789,169 @@ export default function App(): React.ReactElement {
   }
 
   return (
-    <div className="app">
-      <Toolbar
-        hasTab={Boolean(activeTab)}
-        dirty={Boolean(activeTab && activeTab.content !== activeTab.savedContent)}
-        layout={layout}
-        sidebar={sidebar}
-        theme={settings.theme}
-        direction={activeTab?.direction ?? 'rtl'}
-        onNew={newTab}
-        onOpen={() => void openDialog()}
-        onSave={() => {
-          const id = activeIdRef.current
-          if (id) void saveTab(id)
-        }}
-        onSaveAs={() => {
-          const id = activeIdRef.current
-          if (id) void saveTab(id, true)
-        }}
-        onExportPdf={() => void exportPdf()}
-        onExportDocx={() => void exportDocx()}
-        onToggleSidebar={() => setSidebar((prev) => !prev)}
-        onLayout={setLayout}
-        onCycleTheme={cycleTheme}
-        onToggleDirection={toggleDirection}
-        onSettings={() => setSettingsOpen(true)}
-      />
+    <I18nProvider language={settings.language}>
+      <div className="app">
+        <Toolbar
+          hasTab={Boolean(activeTab)}
+          dirty={Boolean(activeTab && activeTab.content !== activeTab.savedContent)}
+          layout={layout}
+          sidebar={sidebar}
+          theme={settings.theme}
+          direction={activeTab?.direction ?? 'rtl'}
+          onNew={newTab}
+          onOpen={() => void openDialog()}
+          onSave={() => {
+            const id = activeIdRef.current
+            if (id) void saveTab(id)
+          }}
+          onSaveAs={() => {
+            const id = activeIdRef.current
+            if (id) void saveTab(id, true)
+          }}
+          onExportPdf={() => void exportPdf()}
+          onExportDocx={() => void exportDocx()}
+          onToggleSidebar={() => setSidebar((prev) => !prev)}
+          onLayout={setLayout}
+          onCycleTheme={cycleTheme}
+          onToggleDirection={toggleDirection}
+          onSettings={() => setSettingsOpen(true)}
+        />
 
-      <TabBar tabs={tabs} activeId={activeId} onSelect={setActiveId} onClose={requestClose} onNew={newTab} />
+        <TabBar tabs={tabs} activeId={activeId} onSelect={setActiveId} onClose={requestClose} onNew={newTab} />
 
-      <div className="main">
-        {sidebar && activeTab ? (
-          <Sidebar
-            headings={rendered.headings}
-            recent={recent}
-            activeHeadingId={null}
-            onHeading={scrollPreviewTo}
-            onOpenRecent={(path) => void openPath(path)}
-            onClearRecent={() => {
-              void window.api.clearRecent().then(() => setRecent([]))
-            }}
-            onShowInFolder={(path) => void window.api.showItemInFolder(path)}
+        {updateStatus.state === 'downloaded' ? (
+          <div className="update-banner">
+            <Icon name="sparkle" size={15} />
+            <span>{t('app.updateReady', { version: updateStatus.version ?? '' })}</span>
+            <button className="primary-btn small" onClick={() => window.api.installUpdate()}>
+              {t('app.updateRestart')}
+            </button>
+            <button className="ghost-btn small" onClick={() => setUpdateStatus((prev) => ({ ...prev, state: 'idle' }))}>
+              {t('app.updateLater')}
+            </button>
+          </div>
+        ) : null}
+
+        <div className="main">
+          {sidebar && activeTab ? (
+            <Sidebar
+              headings={rendered.headings}
+              recent={recent}
+              activeHeadingId={null}
+              onHeading={scrollPreviewTo}
+              onOpenRecent={(path) => void openPath(path)}
+              onClearRecent={() => {
+                void window.api.clearRecent().then(() => setRecent([]))
+              }}
+              onShowInFolder={(path) => void window.api.showItemInFolder(path)}
+            />
+          ) : null}
+
+          <div className="panes-wrap">
+            {activeTab ? (
+              <div
+                className={`panes layout-${layout}`}
+                ref={panesRef}
+                style={
+                  layout === 'split'
+                    ? { gridTemplateColumns: `minmax(0, ${editorWidth}%) 8px minmax(0, 1fr)` }
+                    : undefined
+                }
+              >
+                {layout !== 'preview' ? (
+                  <section className="pane editor-pane">
+                    <div className="pane-label">{t('pane.editor')}</div>
+                    <EditorPane
+                      tab={activeTab}
+                      settings={settings}
+                      onChange={(value) => updateContent(activeTab.id, value)}
+                      onScrollRatio={(ratio) => {
+                        const container = previewRef.current
+                        if (!container) return
+                        const max = container.scrollHeight - container.clientHeight
+                        container.scrollTop = ratio * max
+                      }}
+                      onViewReady={(view) => {
+                        editorViewRef.current = view
+                      }}
+                    />
+                  </section>
+                ) : null}
+
+                {layout === 'split' ? (
+                  <div className="splitter" onMouseDown={startResize} role="separator" aria-orientation="vertical" />
+                ) : null}
+
+                {layout !== 'editor' ? (
+                  <section className="pane preview-pane">
+                    <div className="pane-label">{t('pane.preview')}</div>
+                    <PreviewPane
+                      html={rendered.html}
+                      direction={activeTab.direction}
+                      settings={settings}
+                      scrollRef={previewRef}
+                      findOpen={findOpen}
+                      onCloseFind={() => setFindOpen(false)}
+                      onLocalFile={openLocal}
+                      onAnchor={handlePreviewAnchor}
+                    />
+                  </section>
+                ) : null}
+              </div>
+            ) : (
+              <Welcome
+                recent={recent}
+                onNew={newTab}
+                onOpen={() => void openDialog()}
+                onOpenRecent={(path) => void openPath(path)}
+              />
+            )}
+          </div>
+        </div>
+
+        <StatusBar
+          tab={activeTab}
+          words={words}
+          lines={lines}
+          autosave={settings.autosave}
+          onShowInFolder={(path) => void window.api.showItemInFolder(path)}
+        />
+
+        {settingsOpen ? (
+          <SettingsDialog
+            settings={settings}
+            version={version}
+            updateStatus={updateStatus}
+            onChange={updateSettings}
+            onCheckUpdates={() => void window.api.checkForUpdates().then(setUpdateStatus)}
+            onDownloadUpdate={() => void window.api.downloadUpdate().then(setUpdateStatus)}
+            onInstallUpdate={() => window.api.installUpdate()}
+            onClose={() => setSettingsOpen(false)}
           />
         ) : null}
 
-        <div className="panes-wrap">
-          {activeTab ? (
-            <div
-              className={`panes layout-${layout}`}
-              ref={panesRef}
-              style={
-                layout === 'split'
-                  ? { gridTemplateColumns: `minmax(0, ${editorWidth}%) 8px minmax(0, 1fr)` }
-                  : undefined
-              }
-            >
-              {layout !== 'preview' ? (
-                <section className="pane editor-pane">
-                  <div className="pane-label">تحرير</div>
-                  <EditorPane
-                    tab={activeTab}
-                    settings={settings}
-                    onChange={(value) => updateContent(activeTab.id, value)}
-                    onScrollRatio={(ratio) => {
-                      const container = previewRef.current
-                      if (!container) return
-                      const max = container.scrollHeight - container.clientHeight
-                      container.scrollTop = ratio * max
-                    }}
-                    onViewReady={(view) => {
-                      editorViewRef.current = view
-                    }}
-                  />
-                </section>
-              ) : null}
+        {guideOpen ? <GuideDialog onClose={() => setGuideOpen(false)} /> : null}
 
-              {layout === 'split' ? (
-                <div className="splitter" onMouseDown={startResize} role="separator" aria-orientation="vertical" />
-              ) : null}
+        {dialog ? (
+          <ConfirmDialog
+            title={dialog.title}
+            message={dialog.message}
+            buttons={dialog.buttons}
+            onClose={() => setDialog(null)}
+          />
+        ) : null}
 
-              {layout !== 'editor' ? (
-                <section className="pane preview-pane">
-                  <div className="pane-label">معاينة</div>
-                  <PreviewPane
-                    html={rendered.html}
-                    direction={activeTab.direction}
-                    settings={settings}
-                    scrollRef={previewRef}
-                    onLocalFile={openLocal}
-                    onAnchor={handlePreviewAnchor}
-                  />
-                </section>
-              ) : null}
+        <div className="toasts">
+          {toasts.map((toast) => (
+            <div key={toast.id} className={`toast ${toast.kind}`}>
+              <span>{toast.text}</span>
+              <button className="icon-btn" onClick={() => setToasts((prev) => prev.filter((item) => item.id !== toast.id))}>
+                <Icon name="close" size={13} />
+              </button>
             </div>
-          ) : (
-            <Welcome
-              recent={recent}
-              onNew={newTab}
-              onOpen={() => void openDialog()}
-              onOpenRecent={(path) => void openPath(path)}
-            />
-          )}
+          ))}
         </div>
       </div>
-
-      <StatusBar
-        tab={activeTab}
-        words={words}
-        lines={lines}
-        autosave={settings.autosave}
-        onShowInFolder={(path) => void window.api.showItemInFolder(path)}
-      />
-
-      {settingsOpen ? (
-        <SettingsDialog
-          settings={settings}
-          version={version}
-          onChange={updateSettings}
-          onClose={() => setSettingsOpen(false)}
-        />
-      ) : null}
-
-      {guideOpen ? <GuideDialog onClose={() => setGuideOpen(false)} /> : null}
-
-      {dialog ? (
-        <ConfirmDialog
-          title={dialog.title}
-          message={dialog.message}
-          buttons={dialog.buttons}
-          onClose={() => setDialog(null)}
-        />
-      ) : null}
-
-      <div className="toasts">
-        {toasts.map((toast) => (
-          <div key={toast.id} className={`toast ${toast.kind}`}>
-            <span>{toast.text}</span>
-            <button className="icon-btn" onClick={() => setToasts((prev) => prev.filter((item) => item.id !== toast.id))}>
-              <Icon name="close" size={13} />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
+    </I18nProvider>
   )
 }

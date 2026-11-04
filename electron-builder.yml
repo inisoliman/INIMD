@@ -57,4 +57,9 @@ fileAssociations:
 portable:
   artifactName: INIMD-Portable-${version}.${ext}
 
-publish: null
+publish:
+  provider: github
+  owner: inisoliman
+  repo: INIMD
+  private: true
+  releaseType: release

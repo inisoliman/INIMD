@@ -114,6 +114,76 @@ report.savedToDisk = savedContent.includes('سطر اختباري أضافه ا�
 report.dirtyAfterSave = (await win.locator('.tab-dot.on').count()) > 0
 log('save done')
 
+// external change from another program -> automatic reload
+log('external change')
+appendFileSync(working, '\n\nسطر أضافه محرر آخر — external edit marker.\n')
+let externalReload = false
+for (let i = 0; i < 24; i += 1) {
+  await win.waitForTimeout(250)
+  if ((await win.locator('.md-body').innerText()).includes('external edit marker')) {
+    externalReload = true
+    break
+  }
+}
+report.externalReload = externalReload
+report.externalDirty = (await win.locator('.tab-dot.on').count()) > 0
+report.externalDialog = await win.locator('.modal').count()
+log('external change done')
+
+// find inside the preview (Ctrl+F)
+await win.getByTitle('المعاينة فقط').click()
+await win.waitForTimeout(400)
+await win.locator('.md-body').click()
+await win.keyboard.press('Control+f')
+await win.waitForTimeout(350)
+report.findBarVisible = await win.locator('.preview-find').isVisible()
+await win.locator('.preview-find-input input').fill('INIMD')
+await win.waitForTimeout(400)
+report.findCount = (await win.locator('.preview-find-count').innerText()).trim()
+report.findHighlights = await win.evaluate(() => ({
+  all: globalThis.CSS?.highlights?.get('inimd-find')?.size ?? 0,
+  active: globalThis.CSS?.highlights?.get('inimd-find-active')?.size ?? 0
+}))
+await win.screenshot({ path: join(docs, 'screenshot-find.png') })
+await win.locator('.preview-find .icon-btn').nth(1).click()
+await win.waitForTimeout(250)
+report.findNextCount = (await win.locator('.preview-find-count').innerText()).trim()
+await win.keyboard.press('Escape')
+await win.waitForTimeout(300)
+report.findClosed = (await win.locator('.preview-find').count()) === 0
+await win.getByTitle('عرض مقسوم').click()
+await win.waitForTimeout(300)
+log('find done')
+
+// language switch: Arabic -> English -> Arabic
+await win.locator('.toolbar .tb').last().click()
+await win.waitForTimeout(300)
+await win.getByRole('button', { name: 'English', exact: true }).click()
+await win.waitForTimeout(500)
+report.language = await win.evaluate(() => ({
+  lang: document.documentElement.lang,
+  dir: document.documentElement.dir
+}))
+report.menuLabels = await app.evaluate(({ Menu }) =>
+  (Menu.getApplicationMenu()?.items ?? []).map((item) => item.label)
+)
+report.toolbarNewLabel = (await win.locator('.toolbar').innerText()).replace(/\s+/g, ' ').trim().slice(0, 60)
+await win.screenshot({ path: join(docs, 'screenshot-english-settings.png') })
+await win.locator('.settings-footer .primary-btn').click()
+await win.waitForTimeout(400)
+await win.screenshot({ path: join(docs, 'screenshot-english.png') })
+await win.locator('.toolbar .tb').last().click()
+await win.waitForTimeout(300)
+await win.getByRole('button', { name: 'العربية', exact: true }).click()
+await win.waitForTimeout(500)
+report.languageBack = await win.evaluate(() => ({
+  lang: document.documentElement.lang,
+  dir: document.documentElement.dir
+}))
+await win.locator('.settings-footer .primary-btn').click()
+await win.waitForTimeout(250)
+log('language done')
+
 // export PDF through the real renderer pipeline
 await clickMenu(['ملف', 'تصدير إلى PDF…'])
 let pdfOk = false

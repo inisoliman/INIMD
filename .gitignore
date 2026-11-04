@@ -9,6 +9,7 @@ Thumbs.db
 .idea/
 *.tsbuildinfo
 selftest-output/
+.brain/
 
 # مخرجات الاختبارات والنماذج الوسيطة
 docs/test-output/

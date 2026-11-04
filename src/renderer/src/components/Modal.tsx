@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useI18n } from '../lib/i18n'
 import { Icon } from './Icon'
 
 interface ModalProps {
@@ -11,6 +12,7 @@ interface ModalProps {
 }
 
 export function Modal({ title, onClose, children, footer, width = 560, closeOnBackdrop = true }: ModalProps): React.ReactElement {
+  const { t } = useI18n()
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onClose()
@@ -29,7 +31,7 @@ export function Modal({ title, onClose, children, footer, width = 560, closeOnBa
       <div className="modal" style={{ width }} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} title="إغلاق">
+          <button className="icon-btn" onClick={onClose} title={t('modal.close')}>
             <Icon name="close" size={16} />
           </button>
         </div>

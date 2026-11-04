@@ -18,6 +18,8 @@ export type IconName =
   | 'search'
   | 'external'
   | 'chevron'
+  | 'chevronUp'
+  | 'chevronDown'
   | 'check'
   | 'info'
   | 'trash'
@@ -44,6 +46,8 @@ const PATHS: Record<IconName, string[]> = {
   search: ['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z', 'M21 21l-4.3-4.3'],
   external: ['M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6', 'M15 3h6v6', 'M10 14 21 3'],
   chevron: ['m6 9 6 6 6-6'],
+  chevronUp: ['m18 15-6-6-6 6'],
+  chevronDown: ['m6 9 6 6 6-6'],
   check: ['M20 6 9 17l-5-5'],
   info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-4', 'M12 8h.01'],
   trash: ['M3 6h18', 'M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2', 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', 'M10 11v6', 'M14 11v6'],

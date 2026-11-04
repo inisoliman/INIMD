@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { basicSetup } from 'codemirror'
-import { EditorState } from '@codemirror/state'
+import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { tags } from '@lezer/highlight'
 import type { Settings } from '@shared/types'
+import { useI18n } from '../lib/i18n'
 import type { Tab } from '../types'
 
 const ARABIC_PHRASES: Record<string, string> = {
@@ -71,7 +72,7 @@ const inimdTheme = EditorView.theme({
     fontFamily: 'var(--ui-font)'
   },
   '.cm-panels.cm-panels-top': { borderBottom: '1px solid var(--border)' },
-  '.cm-panel.cm-search': { padding: '8px 10px', direction: 'rtl' },
+  '.cm-panel.cm-search': { padding: '8px 10px' },
   '.cm-panel.cm-search input, .cm-panel.cm-search button, .cm-panel.cm-search label': {
     fontFamily: 'var(--ui-font)',
     fontSize: '12px'
@@ -138,11 +139,13 @@ interface EditorPaneProps {
 }
 
 export function EditorPane({ tab, settings, onChange, onScrollRatio, onViewReady }: EditorPaneProps): React.ReactElement {
+  const { language } = useI18n()
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const changeRef = useRef(onChange)
   const scrollRef = useRef(onScrollRatio)
   const readyRef = useRef(onViewReady)
+  const phrasesCompartment = useRef(new Compartment())
 
   changeRef.current = onChange
   scrollRef.current = onScrollRatio
@@ -158,7 +161,7 @@ export function EditorPane({ tab, settings, onChange, onScrollRatio, onViewReady
           basicSetup,
           markdown({ base: markdownLanguage, codeLanguages: languages }),
           EditorView.lineWrapping,
-          EditorState.phrases.of(ARABIC_PHRASES),
+          phrasesCompartment.current.of(EditorState.phrases.of(language === 'ar' ? ARABIC_PHRASES : {})),
           inimdTheme,
           syntaxHighlighting(inimdHighlight),
           EditorView.contentAttributes.of({
@@ -210,6 +213,16 @@ export function EditorPane({ tab, settings, onChange, onScrollRatio, onViewReady
   useEffect(() => {
     viewRef.current?.requestMeasure()
   }, [tab.direction])
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: phrasesCompartment.current.reconfigure(
+        EditorState.phrases.of(language === 'ar' ? ARABIC_PHRASES : {})
+      )
+    })
+  }, [language])
 
   const style = {
     '--editor-font': `${settings.fontFamily}, "Segoe UI", Tahoma, sans-serif`,

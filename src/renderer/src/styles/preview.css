@@ -8,6 +8,88 @@
   scroll-behavior: smooth;
 }
 
+/* Find in preview ------------------------------------------------ */
+.preview-find {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.preview-find-input {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--muted);
+}
+.preview-find-input:focus-within {
+  border-color: var(--accent);
+}
+.preview-find-input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--ui-font);
+  font-size: 12.5px;
+}
+.preview-find-input input::-webkit-search-cancel-button {
+  filter: grayscale(1);
+}
+.preview-find-count {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.preview-find-count.empty {
+  color: var(--danger);
+}
+.find-case {
+  flex: none;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--ui-font);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.find-case:hover {
+  border-color: var(--border);
+}
+.find-case.active {
+  color: var(--accent);
+  border-color: var(--border);
+  background: var(--accent-soft);
+}
+.preview-find .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+::highlight(inimd-find) {
+  background-color: var(--match);
+  color: inherit;
+}
+::highlight(inimd-find-active) {
+  background-color: var(--match-active);
+  color: #1c1a15;
+}
+
 .md-body {
   max-width: 820px;
   margin: 0 auto;
@@ -151,7 +233,8 @@
   border-radius: 0 8px 8px 0;
   color: color-mix(in srgb, var(--fg) 82%, var(--muted));
 }
-html[dir='rtl'] .md-body blockquote {
+html[dir='rtl'] .md-body blockquote,
+[dir='rtl'] .md-body blockquote {
   border-radius: 8px 0 0 8px;
 }
 .md-body blockquote > *:last-child {

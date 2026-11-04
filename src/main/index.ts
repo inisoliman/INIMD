@@ -1,18 +1,26 @@
 import { app, BrowserWindow, dialog, Menu, ipcMain, net, protocol, shell } from 'electron'
+import { watch as watchFs, type FSWatcher } from 'fs'
 import { promises as fs } from 'fs'
 import { dirname, extname, join, resolve } from 'path'
 import { pathToFileURL } from 'url'
 import type { ExportDocxPayload, ExportPdfPayload, MenuAction, Settings } from '../shared/types'
+import { createTranslator, type Language } from '../shared/i18n'
 import { buildDocxFile } from './docx'
 import { extractMarkdownArg, isMarkdownPath, readDocument } from './files'
 import { exportPdf } from './pdf'
 import { addRecent, clearRecent, getRecent, getSettings, saveSettings } from './store'
+import { checkForUpdates, downloadUpdate, getUpdateStatus, initUpdater, installUpdate } from './updater'
 
 const APP_ID = 'com.ini.inimd'
-const MD_FILTERS = [
-  { name: 'ملفات Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx'] },
-  { name: 'كل الملفات', extensions: ['*'] }
-]
+
+function markdownFilters(filtersName: string, allName: string): Electron.FileFilter[] {
+  return [
+    { name: filtersName, extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx'] },
+    { name: allName, extensions: ['*'] }
+  ]
+}
+
+let menuLanguage: Language | null = null
 
 let mainWindow: BrowserWindow | null = null
 let forceClose = false
@@ -82,7 +90,9 @@ async function openPathInWindow(filePath: string): Promise<void> {
     }
   } catch (error) {
     if (mainWindow) {
-      dialog.showErrorBox('تعذّر فتح الملف', error instanceof Error ? error.message : String(error))
+      const settings = await getSettings()
+      const t = createTranslator(settings.language)
+      dialog.showErrorBox(t('dialog.openErrorTitle'), error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -92,74 +102,79 @@ function sendMenu(action: MenuAction): void {
   target?.webContents.send('menu:action', action)
 }
 
-function buildMenu(): void {
+function buildMenu(language: Language, force = false): void {
+  if (!force && menuLanguage === language) return
+  menuLanguage = language
+  const t = createTranslator(language)
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'ملف',
+      label: t('menu.file'),
       submenu: [
-        { label: 'جديد', accelerator: 'CmdOrCtrl+N', click: () => sendMenu('new') },
-        { label: 'فتح…', accelerator: 'CmdOrCtrl+O', click: () => sendMenu('open') },
+        { label: t('menu.new'), accelerator: 'CmdOrCtrl+N', click: () => sendMenu('new') },
+        { label: t('menu.open'), accelerator: 'CmdOrCtrl+O', click: () => sendMenu('open') },
         { type: 'separator' },
-        { label: 'حفظ', accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
-        { label: 'حفظ باسم…', accelerator: 'CmdOrCtrl+Shift+S', click: () => sendMenu('save-as') },
+        { label: t('menu.save'), accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
+        { label: t('menu.saveAs'), accelerator: 'CmdOrCtrl+Shift+S', click: () => sendMenu('save-as') },
         { type: 'separator' },
-        { label: 'تصدير إلى PDF…', accelerator: 'CmdOrCtrl+Alt+P', click: () => sendMenu('export-pdf') },
-        { label: 'تصدير إلى Word…', accelerator: 'CmdOrCtrl+Alt+W', click: () => sendMenu('export-docx') },
+        { label: t('menu.exportPdf'), accelerator: 'CmdOrCtrl+Alt+P', click: () => sendMenu('export-pdf') },
+        { label: t('menu.exportWord'), accelerator: 'CmdOrCtrl+Alt+W', click: () => sendMenu('export-docx') },
         { type: 'separator' },
-        { label: 'إغلاق التبويب', accelerator: 'CmdOrCtrl+W', click: () => sendMenu('close-tab') },
+        { label: t('menu.closeTab'), accelerator: 'CmdOrCtrl+W', click: () => sendMenu('close-tab') },
         {
-          label: 'خروج',
+          label: t('menu.quit'),
           accelerator: 'Alt+F4',
           click: () => mainWindow?.close()
         }
       ]
     },
     {
-      label: 'تحرير',
+      label: t('menu.edit'),
       submenu: [
-        { label: 'تراجع', role: 'undo' },
-        { label: 'إعادة', role: 'redo' },
+        { label: t('menu.undo'), role: 'undo' },
+        { label: t('menu.redo'), role: 'redo' },
         { type: 'separator' },
-        { label: 'قص', role: 'cut' },
-        { label: 'نسخ', role: 'copy' },
-        { label: 'لصق', role: 'paste' },
-        { label: 'تحديد الكل', role: 'selectAll' },
+        { label: t('menu.cut'), role: 'cut' },
+        { label: t('menu.copy'), role: 'copy' },
+        { label: t('menu.paste'), role: 'paste' },
+        { label: t('menu.selectAll'), role: 'selectAll' },
         { type: 'separator' },
-        { label: 'بحث واستبدال…', accelerator: 'CmdOrCtrl+F', click: () => sendMenu('find') }
+        { label: t('menu.find'), accelerator: 'CmdOrCtrl+F', click: () => sendMenu('find') }
       ]
     },
     {
-      label: 'عرض',
+      label: t('menu.view'),
       submenu: [
-        { label: 'عرض المعاينة', accelerator: 'CmdOrCtrl+Shift+V', click: () => sendMenu('toggle-preview') },
-        { label: 'الشريط الجانبي', accelerator: 'CmdOrCtrl+B', click: () => sendMenu('toggle-toc') },
+        { label: t('menu.togglePreview'), accelerator: 'CmdOrCtrl+Shift+V', click: () => sendMenu('toggle-preview') },
+        { label: t('menu.sidebar'), accelerator: 'CmdOrCtrl+B', click: () => sendMenu('toggle-toc') },
         { type: 'separator' },
-        { label: 'تكبير', role: 'zoomIn' },
-        { label: 'تصغير', role: 'zoomOut' },
-        { label: 'الحجم الطبيعي', role: 'resetZoom' },
+        { label: t('menu.zoomIn'), role: 'zoomIn' },
+        { label: t('menu.zoomOut'), role: 'zoomOut' },
+        { label: t('menu.zoomReset'), role: 'resetZoom' },
         { type: 'separator' },
-        { label: 'ملء الشاشة', role: 'togglefullscreen' },
-        { label: 'أدوات المطور', role: 'toggleDevTools' }
+        { label: t('menu.fullscreen'), role: 'togglefullscreen' },
+        { label: t('menu.devtools'), role: 'toggleDevTools' }
       ]
     },
     {
-      label: 'إعدادات',
-      submenu: [{ label: 'الإعدادات…', accelerator: 'CmdOrCtrl+,', click: () => sendMenu('settings') }]
+      label: t('menu.settings'),
+      submenu: [
+        { label: t('menu.appSettings'), accelerator: 'CmdOrCtrl+,', click: () => sendMenu('settings') },
+        { label: t('menu.checkUpdates'), click: () => sendMenu('check-updates') }
+      ]
     },
     {
-      label: 'مساعدة',
+      label: t('menu.help'),
       submenu: [
-        { label: 'دليل الاستخدام', click: () => sendMenu('guide') },
+        { label: t('menu.guide'), click: () => sendMenu('guide') },
         {
-          label: 'حول INIMD',
+          label: t('menu.about'),
           click: () => {
             dialog.showMessageBox({
               type: 'info',
-              title: 'حول INIMD',
+              title: t('menu.aboutTitle'),
               message: `INIMD ${app.getVersion()}`,
-              detail:
-                'محرر وعارض Markdown عربي لويندوز.\nيدعم الاتجاه من اليمين إلى اليسار وتصدير PDF وWord.\n\nتطوير: INI\nالبريد: ibrahim.noshy@hotmail.com\n\nصُنع بـ Electron وReact.',
-              buttons: ['حسناً']
+              detail: t('menu.aboutDetail'),
+              buttons: [t('menu.ok')]
             })
           }
         }
@@ -240,10 +255,12 @@ function createWindow(): void {
 function registerIpc(): void {
   ipcMain.handle('dialog:open', async () => {
     if (!mainWindow) return null
+    const settings = await getSettings()
+    const t = createTranslator(settings.language)
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'فتح ملف Markdown',
+      title: t('dialog.openTitle'),
       properties: ['openFile'],
-      filters: MD_FILTERS
+      filters: markdownFilters(t('dialog.markdownFiles'), t('dialog.allFiles'))
     })
     if (result.canceled || !result.filePaths.length) return null
     const file = await readDocument(result.filePaths[0])
@@ -252,7 +269,10 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('file:read', async (_event, filePath: string) => {
-    if (typeof filePath !== 'string' || !filePath) throw new Error('مسار غير صالح')
+    if (typeof filePath !== 'string' || !filePath) {
+      const t = createTranslator((await getSettings()).language)
+      throw new Error(t('dialog.invalidPath'))
+    }
     const absolute = resolve(filePath)
     const file = await readDocument(absolute)
     await addRecent(file.path)
@@ -260,7 +280,10 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('file:save', async (_event, filePath: string, content: string) => {
-    if (typeof filePath !== 'string' || !filePath) throw new Error('مسار غير صالح')
+    if (typeof filePath !== 'string' || !filePath) {
+      const t = createTranslator((await getSettings()).language)
+      throw new Error(t('dialog.invalidPath'))
+    }
     await fs.writeFile(filePath, content, 'utf8')
     const stat = await fs.stat(filePath)
     await addRecent(filePath)
@@ -269,11 +292,13 @@ function registerIpc(): void {
 
   ipcMain.handle('file:save-as', async (_event, suggestedName: string, content: string) => {
     if (!mainWindow) return null
+    const settings = await getSettings()
+    const t = createTranslator(settings.language)
     const suggested = await defaultDocumentPath(suggestedName)
     const result = await dialog.showSaveDialog(mainWindow, {
-      title: 'حفظ الملف',
+      title: t('dialog.saveTitle'),
       defaultPath: suggested,
-      filters: MD_FILTERS
+      filters: markdownFilters(t('dialog.markdownFiles'), t('dialog.allFiles'))
     })
     if (result.canceled || !result.filePath) return null
     const target = isMarkdownPath(result.filePath) ? result.filePath : `${result.filePath}.md`
@@ -295,7 +320,18 @@ function registerIpc(): void {
   ipcMain.handle('settings:get', async () => getSettings())
 
   ipcMain.handle('settings:set', async (_event, patch: Partial<Settings>) => {
-    await saveSettings(patch ?? {})
+    const before = await getSettings()
+    const next = await saveSettings(patch ?? {})
+    if (next.language !== before.language) buildMenu(next.language)
+    return next
+  })
+
+  ipcMain.handle('file:watch', async (_event, filePath: string) => {
+    if (typeof filePath === 'string' && filePath) watchFile(filePath)
+  })
+
+  ipcMain.handle('file:unwatch', async (_event, filePath: string) => {
+    if (typeof filePath === 'string' && filePath) unwatchFile(filePath)
   })
 
   ipcMain.handle('recent:get', async () => getRecent())
@@ -303,7 +339,10 @@ function registerIpc(): void {
   ipcMain.handle('recent:clear', async () => clearRecent())
 
   ipcMain.handle('export:pdf', async (_event, payload: ExportPdfPayload) => {
-    if (!mainWindow) return { ok: false, error: 'النافذة غير متاحة' }
+    if (!mainWindow) {
+      const t = createTranslator((await getSettings()).language)
+      return { ok: false, error: t('dialog.noWindow') }
+    }
     const settings = await getSettings()
     const suggestedDir = payload.suggestedDir || (await lastDirectory())
     return exportPdf(
@@ -314,16 +353,20 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('export:docx', async (_event, payload: ExportDocxPayload) => {
-    if (!mainWindow) return { ok: false, error: 'النافذة غير متاحة' }
+    if (!mainWindow) {
+      const t = createTranslator((await getSettings()).language)
+      return { ok: false, error: t('dialog.noWindow') }
+    }
     try {
       const settings = await getSettings()
+      const t = createTranslator(settings.language)
       const suggestedDir = payload.suggestedDir || payload.baseDir || (await lastDirectory())
       let targetPath = process.env['INIMD_DOCX_OUT'] ?? ''
       if (!targetPath) {
         const result = await dialog.showSaveDialog(mainWindow, {
-          title: 'تصدير إلى Word',
+          title: t('dialog.exportWordTitle'),
           defaultPath: join(suggestedDir, `${payload.defaultName}.docx`),
-          filters: [{ name: 'مستند Word', extensions: ['docx'] }]
+          filters: [{ name: t('dialog.wordDoc'), extensions: ['docx'] }]
         })
         if (result.canceled || !result.filePath) return { ok: false, canceled: true }
         targetPath = result.filePath
@@ -352,6 +395,11 @@ function registerIpc(): void {
 
   ipcMain.handle('app:version', async () => app.getVersion())
 
+  ipcMain.handle('update:check', async () => checkForUpdates())
+  ipcMain.handle('update:download', async () => downloadUpdate())
+  ipcMain.on('update:install', () => installUpdate())
+  ipcMain.handle('update:status', async () => getUpdateStatus())
+
   ipcMain.on('app:confirm-close', (_event, allow: boolean) => {
     closeRequested = false
     if (allow) {
@@ -366,6 +414,61 @@ function registerIpc(): void {
 }
 
 let cachedDirectory: string | null = null
+
+interface PathWatcher {
+  watcher: FSWatcher
+  timer: NodeJS.Timeout | null
+}
+
+const fileWatchers = new Map<string, PathWatcher>()
+
+function watcherKey(filePath: string): string {
+  return resolve(filePath).toLowerCase()
+}
+
+function watchFile(filePath: string): void {
+  const key = watcherKey(filePath)
+  if (fileWatchers.has(key)) return
+  try {
+    const watcher = watchFs(filePath, { persistent: false }, () => {
+      const entry = fileWatchers.get(key)
+      if (!entry) return
+      if (entry.timer) clearTimeout(entry.timer)
+      entry.timer = setTimeout(() => {
+        void (async () => {
+          try {
+            const stat = await fs.stat(filePath)
+            if (!stat.isFile()) return
+            mainWindow?.webContents.send('app:file-changed', {
+              path: filePath,
+              mtimeMs: stat.mtimeMs
+            })
+          } catch {
+            /* file may be mid-write or removed */
+          }
+        })()
+      }, 220)
+      entry.timer.unref?.()
+    })
+    watcher.on('error', () => unwatchFile(filePath))
+    fileWatchers.set(key, { watcher, timer: null })
+  } catch {
+    /* watching is best effort */
+  }
+}
+
+function unwatchFile(filePath: string): void {
+  const key = watcherKey(filePath)
+  const entry = fileWatchers.get(key)
+  if (!entry) return
+  if (entry.timer) clearTimeout(entry.timer)
+  try {
+    entry.watcher.close()
+  } catch {
+    /* ignore */
+  }
+  fileWatchers.delete(key)
+}
 
 async function lastDirectory(): Promise<string> {
   if (cachedDirectory) return cachedDirectory
@@ -431,7 +534,14 @@ const greeting = "مرحبا"
 app.whenReady().then(async () => {
   await registerAssetProtocol()
   registerIpc()
-  buildMenu()
+
+  const settings = await getSettings()
+  buildMenu(settings.language)
+  initUpdater((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update:status', status)
+    }
+  })
 
   if (process.argv.includes('--selftest')) {
     try {
@@ -447,6 +557,12 @@ app.whenReady().then(async () => {
   if (initialPath) pendingOpenPath = initialPath
 
   createWindow()
+
+  if (settings.autoUpdate) {
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) void checkForUpdates()
+    }, 6000).unref?.()
+  }
 })
 
 app.on('window-all-closed', () => {

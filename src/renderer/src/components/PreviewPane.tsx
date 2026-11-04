@@ -1,12 +1,16 @@
 import type { CSSProperties, RefObject } from 'react'
 import type { Direction, Settings } from '@shared/types'
 import { isExternalHref } from '../lib/paths'
+import { useI18n } from '../lib/i18n'
+import { PreviewFind } from './PreviewFind'
 
 interface PreviewPaneProps {
   html: string
   direction: Direction
   settings: Settings
   scrollRef: RefObject<HTMLDivElement | null>
+  findOpen: boolean
+  onCloseFind: () => void
   onLocalFile: (path: string) => void
   onAnchor: (id: string) => void
 }
@@ -16,9 +20,12 @@ export function PreviewPane({
   direction,
   settings,
   scrollRef,
+  findOpen,
+  onCloseFind,
   onLocalFile,
   onAnchor
 }: PreviewPaneProps): React.ReactElement {
+  const { t } = useI18n()
   const style = {
     '--preview-font': `${settings.fontFamily}, "Segoe UI", Tahoma, sans-serif`,
     '--preview-size': `${settings.fontSize}px`,
@@ -47,14 +54,17 @@ export function PreviewPane({
   }
 
   return (
-    <div className="preview-scroll" ref={scrollRef} dir={direction} style={style}>
-      {html.trim() ? (
-        <article className="md-body" onClick={handleClick} dangerouslySetInnerHTML={{ __html: html }} />
-      ) : (
-        <div className="preview-empty">
-          <p>لا يوجد محتوى بعد — ابدأ الكتابة في المحرر وستظهر المعاينة هنا.</p>
-        </div>
-      )}
-    </div>
+    <>
+      <PreviewFind containerRef={scrollRef} html={html} open={findOpen} onClose={onCloseFind} />
+      <div className="preview-scroll" ref={scrollRef} dir={direction} style={style}>
+        {html.trim() ? (
+          <article className="md-body" onClick={handleClick} dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <div className="preview-empty">
+            <p>{t('preview.empty')}</p>
+          </div>
+        )}
+      </div>
+    </>
   )
 }

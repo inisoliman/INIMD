@@ -1,4 +1,5 @@
 import type { Heading } from '../lib/markdown'
+import { useI18n } from '../lib/i18n'
 import { relativeTime } from '../lib/misc'
 import type { RecentFile } from '@shared/types'
 import { Icon } from './Icon'
@@ -22,16 +23,18 @@ export function Sidebar({
   onClearRecent,
   onShowInFolder
 }: SidebarProps): React.ReactElement {
+  const { t, language } = useI18n()
+
   return (
     <aside className="sidebar">
       <div className="sidebar-head">
         <Icon name="file" size={15} />
-        <span>المحتويات</span>
+        <span>{t('sidebar.contents')}</span>
         <span className="counter">{headings.length || ''}</span>
       </div>
 
       {headings.length ? (
-        <nav className="toc" aria-label="فهرس العناوين">
+        <nav className="toc" aria-label={t('sidebar.tocAria')}>
           {headings.map((heading) => (
             <button
               key={heading.id}
@@ -44,14 +47,14 @@ export function Sidebar({
           ))}
         </nav>
       ) : (
-        <div className="sidebar-empty">أضف عناوين بـ <code>#</code> ليظهر الفهرس هنا.</div>
+        <div className="sidebar-empty">{t('sidebar.emptyToc')}</div>
       )}
 
       <div className="sidebar-head recent-head">
         <Icon name="folder" size={15} />
-        <span>ملفات حديثة</span>
+        <span>{t('sidebar.recent')}</span>
         {recent.length ? (
-          <button className="link-btn" onClick={onClearRecent} title="مسح القائمة">
+          <button className="link-btn" onClick={onClearRecent} title={t('sidebar.clear')}>
             <Icon name="trash" size={13} />
           </button>
         ) : null}
@@ -63,11 +66,11 @@ export function Sidebar({
             <div key={file.path} className="recent-item">
               <button className="recent-open" onClick={() => onOpenRecent(file.path)} title={file.path}>
                 <span className="recent-name">{file.name}</span>
-                <span className="recent-meta">{relativeTime(file.openedAt)}</span>
+                <span className="recent-meta">{relativeTime(file.openedAt, language)}</span>
               </button>
               <button
                 className="recent-locate"
-                title="إظهار في المجلد"
+                title={t('status.showInFolder')}
                 onClick={() => onShowInFolder(file.path)}
               >
                 <Icon name="external" size={13} />
@@ -76,7 +79,7 @@ export function Sidebar({
           ))}
         </div>
       ) : (
-        <div className="sidebar-empty">الملفات التي تفتحها ستظهر هنا.</div>
+        <div className="sidebar-empty">{t('sidebar.emptyRecent')}</div>
       )}
     </aside>
   )

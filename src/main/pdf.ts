@@ -3,10 +3,16 @@ import { promises as fs } from 'fs'
 import { dirname, join } from 'path'
 import { tmpdir } from 'os'
 import type { ExportPdfPayload, ExportResult } from '../shared/types'
+import { createTranslator, type Language } from '../shared/i18n'
 
-function footerTemplate(): string {
-  return `<div style="width:100%;padding:0 14mm;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:9px;color:#8b8b8b;text-align:center;direction:rtl;">
-    صفحة <span class="pageNumber"></span> من <span class="totalPages"></span>
+function footerTemplate(language: Language): string {
+  const t = createTranslator(language)
+  const text = t('print.pageOf')
+  const [before, after = ''] = text.split('{page}')
+  const [middle, tail = ''] = after.split('{total}')
+  const direction = language === 'ar' ? 'rtl' : 'ltr'
+  return `<div style="width:100%;padding:0 14mm;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:9px;color:#8b8b8b;text-align:center;direction:${direction};">
+    ${before}<span class="pageNumber"></span>${middle}<span class="totalPages"></span>${tail}
   </div>`
 }
 
@@ -16,10 +22,12 @@ export async function exportPdf(
   suggestedDir: string
 ): Promise<ExportResult> {
   let targetPath = process.env['INIMD_PDF_OUT'] ?? ''
+  const language = payload.language ?? 'ar'
+  const t = createTranslator(language)
 
   if (!targetPath) {
     const target = await dialog.showSaveDialog(parent, {
-      title: 'تصدير إلى PDF',
+      title: t('menu.exportPdf').replace('…', ''),
       defaultPath: join(suggestedDir || app.getPath('documents'), `${payload.defaultName}.pdf`),
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
@@ -66,7 +74,7 @@ export async function exportPdf(
       margins: { top: 0, bottom: 0, left: 0, right: 0 },
       displayHeaderFooter: useHeaderFooter,
       headerTemplate: '<div></div>',
-      footerTemplate: footerTemplate()
+      footerTemplate: footerTemplate(language)
     })
 
     await fs.writeFile(targetPath, pdf)
