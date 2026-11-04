@@ -24,13 +24,17 @@ if (!existsSync(exe)) {
 const docs = join(root, 'docs')
 const outDir = join(docs, 'test-output', 'lite')
 mkdirSync(outDir, { recursive: true })
-const working = join(docs, '.lite-test-sample.md')
+// يبقى في docs/ لأن ملفات العيّنة تشير إلى الصور بمسارات نسبية
+const working = join(docs, 'lite-sample-ar.md')
 copyFileSync(join(docs, 'sample-ar.md'), working)
 
 // ابدأ من إعدادات عربية محددة (مجلد إعدادات Tauri: %APPDATA%\com.ini.inimd.lite)
 const settingsDir = join(process.env.APPDATA ?? '', 'com.ini.inimd.lite')
 mkdirSync(settingsDir, { recursive: true })
 const settingsFile = join(settingsDir, 'settings.json')
+// ابدأ بقائمة ملفات حديثة نظيفة حتى تظهر اللقطة بدون مخلفات تشغيل سابقة
+const recentFile = join(settingsDir, 'recent.json')
+rmSync(recentFile, { force: true })
 let savedSettings = {}
 try {
   savedSettings = JSON.parse(readFileSync(settingsFile, 'utf8'))

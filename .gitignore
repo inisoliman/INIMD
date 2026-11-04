@@ -18,6 +18,6 @@ lite/src-tauri/gen/schemas/
 # مخرجات الاختبارات والنماذج الوسيطة
 docs/test-output/
 docs/.test-sample.md
-docs/.lite-test-sample.md
+docs/lite-sample-ar.md
 docs/samples/pdf-pages-*.png
 docs/samples/docx-check/
