@@ -6,6 +6,13 @@
 
 ![أيقونة INIMD](build/icons/app-256.png)
 
+## التنزيل
+
+أحدث إصدار جاهز للتثبيت: [github.com/inisoliman/INIMD/releases](https://github.com/inisoliman/INIMD/releases/latest)
+
+- `INIMD-Setup-1.0.0.exe` — مثبّت NSIS (للمستخدم الحالي، بدون صلاحيات مدير).
+- `INIMD-Portable-1.0.0.exe` — نسخة محمولة لا تحتاج تركيب.
+
 ## المزايا
 
 - **ربط تلقائي بملفات `.md` و`.markdown`** عند التركيب: نقرة مزدوجة من مستكشف ويندوز تفتح الملف في INIMD، مع عنصر «فتح بواسطة».
@@ -127,26 +134,20 @@ Electron · electron-vite · React 19 · TypeScript · CodeMirror 6 · markdown-
 
 ## النشر على GitHub
 
-المستودع خاص (private) باسم `INIMD` على حساب `inisoliman`. لنشره من جهاز آخر:
+المستودع خاص (private) باسم `INIMD` على حساب `inisoliman`:
+<https://github.com/inisoliman/INIMD>
+
+الإصدار `v1.0.0` مرفوع مع المثبّت والنسخة المحمولة. لتحديث النسخة من جهاز آخر:
 
 ```bash
 gh auth login
+git push origin main
 ```
 
-ثم من مجلد المشروع:
+ولإصدار جديد:
 
 ```bash
-git init
-git add .
-git commit -m "INIMD: محرر Markdown عربي لويندوز مع تصدير PDF وWord"
-git branch -M main
-gh repo create INIMD --private --source=. --remote=origin --push
-```
-
-لإرفاق المثبّت والنسخة المحمولة بإصدار على GitHub:
-
-```bash
-gh release create v1.0.0 "release/INIMD-Setup-1.0.0.exe" "release/INIMD-Portable-1.0.0.exe" --title "INIMD 1.0.0" --notes "الإصدار الأول: محرر Markdown عربي مع تصدير PDF وWord."
+gh release create v1.1.0 "release/INIMD-Setup-1.1.0.exe" "release/INIMD-Portable-1.1.0.exe" --title "INIMD 1.1.0" --notes "ملاحظات الإصدار."
 ```
 
 ## تطوير
