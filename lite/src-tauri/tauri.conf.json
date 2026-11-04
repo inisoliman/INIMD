@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "INIMD Lite",
+  "version": "1.0.0",
+  "identifier": "com.ini.inimd.lite",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5183",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "INIMD Lite",
+        "width": 1380,
+        "height": 900,
+        "minWidth": 940,
+        "minHeight": 620,
+        "resizable": true,
+        "center": true,
+        "visible": true,
+        "dragDropEnabled": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "publisher": "INI",
+    "copyright": "Copyright © 2026 INIMD",
+    "category": "Productivity",
+    "shortDescription": "INIMD Lite — عارض Markdown خفيف",
+    "longDescription": "INIMD Lite نسخة خفيفة من INIMD لعرض وتحرير ملفات Markdown مع تصدير PDF وWord، مبنية على Tauri وWebView2.",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Arabic", "English"],
+        "displayLanguageSelector": false
+      }
+    },
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd", "mdx"],
+        "name": "Markdown Document",
+        "description": "مستند Markdown",
+        "role": "Editor"
+      }
+    ]
+  }
+}

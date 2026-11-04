@@ -63,8 +63,16 @@ export function resolveLocalPath(href: string, baseDir: string): string | null {
   return stack.join('\\')
 }
 
+let assetUrlBuilder = (absolutePath: string): string =>
+  `inimd://file/?path=${encodeURIComponent(absolutePath)}`
+
+/** تسمح لنسخة Tauri (Lite) باستخدام بروتوكول الأصول الخاص بها. */
+export function setAssetUrlBuilder(builder: (absolutePath: string) => string): void {
+  assetUrlBuilder = builder
+}
+
 export function toAssetUrl(absolutePath: string): string {
-  return `inimd://file/?path=${encodeURIComponent(absolutePath)}`
+  return assetUrlBuilder(absolutePath)
 }
 
 export function isExternalHref(href: string): boolean {

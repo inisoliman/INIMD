@@ -10,8 +10,14 @@
 
 أحدث إصدار جاهز للتثبيت: [github.com/inisoliman/INIMD/releases](https://github.com/inisoliman/INIMD/releases/latest)
 
-- `INIMD-Setup-1.1.0.exe` — مثبّت NSIS (للمستخدم الحالي، بدون صلاحيات مدير).
-- `INIMD-Portable-1.1.0.exe` — نسخة محمولة لا تحتاج تركيب.
+**النسخة الكاملة (Electron — موصى بها):**
+
+- `INIMD-Setup-1.1.1.exe` — مثبّت NSIS (للمستخدم الحالي، بدون صلاحيات مدير).
+- `INIMD-Portable-1.1.1.exe` — نسخة محمولة لا تحتاج تركيب.
+
+**النسخة الخفيفة (INIMD Lite — للإنترنت الضعيف والأجهزة القديمة):**
+
+- `INIMD Lite_1.0.0_x64-setup.exe` — مثبّت بحجم **~3.5 MB**، متوفّر في [صفحة الإصدارات](https://github.com/inisoliman/INIMD/releases) بوسم `lite-v1.0.0` (إصدار تجريبي prerelease).
 
 ## المزايا
 
@@ -30,6 +36,26 @@
 - **أمان**: عزل سياق (`contextIsolation`)، sandbox، تعطيل `nodeIntegration`، وتنقية HTML الناتج عبر DOMPurify.
 - يعمل **دون اتصال بالإنترنت** بالكامل (الإنترنت مطلوب فقط لفحص التحديثات).
 
+## النسخة الخفيفة: INIMD Lite
+
+نسخة ثانية من البرنامج مبنية على **Tauri 2 + WebView2** بواجهة React نفسها، موجهة لمن لديه **إنترنت ضعيف** أو قرص صغير أو جهاز قديم. صدرت كإصدار تجريبي بوسم `lite-v1.0.0` ولا تؤثر إطلاقاً على النسخة الكاملة المنشورة.
+
+| المقارنة | INIMD (Electron) | INIMD Lite (Tauri) |
+| --- | --- | --- |
+| حجم المثبّت | ~109.8 MB | **~3.5 MB** |
+| الحجم على القرص | ~324 MB | **~4 MB** |
+| الذاكرة عند التشغيل | أعلى | **أقل بكثير** |
+| المعاينة والتحرير والبحث `Ctrl+F` | ✅ | ✅ |
+| تصدير Word (docx) | ✅ | ✅ |
+| تصدير PDF | مدمج عبر `printToPDF` | عبر Edge/Chrome headless (متوفّر في ويندوز 10/11) |
+| واجهة عربية/إنجليزية، RTL، ثيمات | ✅ | ✅ |
+| متابعة الملف على القرص | ✅ | ✅ (مراقبة دورية) |
+| ربط ملفات `.md` | ✅ | ✅ |
+| التحديث التلقائي | نعم (تثبيت صامت) | فحص التحديثات فقط — التنزيل يدوي |
+| قائمة «أدوات المطور» | ✅ | ✖ |
+
+**القيود:** تصدير PDF يحتاج توفر **Microsoft Edge** (أو Chrome) على الجهاز، والتحديثات لا تُثبّت نفسها بل تُنبّهك إلى إصدار جديد. تحتاج النسخة الخفيفة توفر **WebView2 Runtime** (موجود افتراضياً في ويندوز 11 وحديث ويندوز 10).
+
 ## لقطات
 
 | الواجهة | المعاينة العربية |
@@ -44,9 +70,9 @@
 | --- | --- |
 | ![الواجهة الإنجليزية](docs/screenshot-english.png) | ![الإعدادات](docs/screenshot-english-settings.png) |
 
-| التحديثات والتوكن |
-| --- |
-| ![التحديثات](docs/screenshot-updates.png) |
+| التحديثات والتوكن | النسخة الخفيفة INIMD Lite |
+| --- | --- |
+| ![التحديثات](docs/screenshot-updates.png) | ![INIMD Lite](docs/screenshot-lite.png) |
 
 ## نماذج المخرجات
 
@@ -95,10 +121,20 @@ npm run dist
 npm run dist:portable
 ```
 
-تجد المخرجات في مجلد `release/`:
+بناء النسخة الخفيفة (INIMD Lite) يحتاج إضافة **Rust** و**MSVC Build Tools** إلى جانب Node.js:
 
-- `INIMD-Setup-1.1.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
-- `INIMD-Portable-1.1.0.exe` — نسخة محمولة.
+```bash
+npm --prefix lite install      # مرة واحدة
+npm run lite:dist              # Vite + cargo release + مثبّت NSIS
+npm run check:lite             # اختبار دخاني آلي على النسخة المبنية
+```
+
+تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`.
+
+تجد مخرجات Electron في مجلد `release/`:
+
+- `INIMD-Setup-1.1.1.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
+- `INIMD-Portable-1.1.1.exe` — نسخة محمولة.
 - `latest.yml` — بيانات التحديث التي يقرأها `electron-updater`.
 
 > **ربط ملفات `.md`:** يسجّل المثبّت INIMD كبرنامج لفتح ملفات Markdown، لكن ويندوز 10/11 قد يحتفظ بالبرنامج الافتراضي السابق. لتثبيته افتراضياً: انقر بالزر الأيمن على أي ملف `.md` ← **فتح باستخدام** ← **اختيار تطبيق آخر** ← اختر **INIMD** ← **دائماً**.
@@ -141,7 +177,7 @@ npm run dist:portable
 src/
   main/            عملية Electron الرئيسية
     index.ts       النافذة، القائمة، IPC، ربط الملفات، بروتوكول الصور، مراقبة الملفات
-    docx.ts        محوّل Markdown → docx مع دعم RTL
+    docx-env.ts    بيئة توليد docx داخل Node (Packer.toBuffer + fs)
     pdf.ts         تصدير PDF عبر printToPDF
     files.ts       قراءة الملفات وترميزاتها
     store.ts       الإعدادات والملفات الحديثة
@@ -152,21 +188,30 @@ src/
       components/  الواجهة: المحرر، المعاينة، البحث، التبويبات، الإعدادات…
       lib/         markdown، print، find، i18n، المسارات، الإحصاءات
       styles/      CSS
-  shared/          أنواع مشتركة وقاموس الترجمة (i18n.ts)
+  shared/          أنواع مشتركة وقاموس الترجمة
+    docx.ts        محوّل Markdown → docx المشترك بين Electron وLite
+    types.ts       واجهة window.api والأنواع
+    i18n.ts        قاموس ar/en
+lite/              النسخة الخفيفة (Tauri + WebView2)
+  src/             جسر window.api لأوامر Rust + نقطة الدخول (تعيد استخدام واجهة React نفسها)
+  src-tauri/       خلفية Rust: الأوامر، القائمة الأصلية، مراقبة الملفات، تصدير PDF عبر Edge
+  scripts/         smoke.mjs — اختبار آلي عبر Playwright/CDP
 build/             الأيقونات وإعدادات المثبّت
 scripts/           توليد الأيقونات والاختبارات الآلية
 ```
 
 ## التقنيات
 
-Electron · electron-vite · React 19 · TypeScript · CodeMirror 6 · markdown-it · highlight.js · DOMPurify · docx · electron-builder
+**INIMD:** Electron · electron-vite · React 19 · TypeScript · CodeMirror 6 · markdown-it · highlight.js · DOMPurify · docx · electron-builder
+
+**INIMD Lite:** Tauri 2 · WebView2 · Rust · React 19 · TypeScript · CodeMirror 6 · docx (في المتصفح)
 
 ## النشر على GitHub
 
 المستودع خاص (private) باسم `INIMD` على حساب `inisoliman`:
 <https://github.com/inisoliman/INIMD>
 
-الإصدار `v1.1.0` هو الإصدار الحالي، ويضم المثبّت والنسخة المحمولة و`latest.yml` لأجل التحديث التلقائي. لتحديث النسخة من جهاز آخر:
+الإصدار `v1.1.1` هو الإصدار الحالي للنسخة الكاملة، ويضم المثبّت والنسخة المحمولة و`latest.yml` لأجل التحديث التلقائي. إصدارات النسخة الخفيفة تُنشر منفصلة بوسم `lite-v*` وكـ **prerelease** حتى لا تزاحم `latest` الذي يقرأه `electron-updater`. لتحديث النسخة من جهاز آخر:
 
 ```bash
 gh auth login
@@ -176,7 +221,10 @@ git push origin main
 ولإصدار جديد:
 
 ```bash
-gh release create v1.1.0 "release/INIMD-Setup-1.1.0.exe" "release/INIMD-Portable-1.1.0.exe" "release/latest.yml" --title "INIMD 1.1.0" --notes "ملاحظات الإصدار."
+gh release create v1.1.1 "release/INIMD-Setup-1.1.1.exe" "release/INIMD-Portable-1.1.1.exe" "release/latest.yml" --title "INIMD 1.1.1" --notes "ملاحظات الإصدار."
+
+# النسخة الخفيفة (prerelease، لا تلمس latest)
+gh release create lite-v1.0.0 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.0.0_x64-setup.exe" --prerelease --title "INIMD Lite 1.0.0" --notes "نسخة خفيفة تجريبية."
 ```
 
 > إن كان المستودع خاصاً، أضف التوكن إلى الإعدادات (أو `INIMD_GH_TOKEN`) كما في قسم **التحديثات** أعلاه.
@@ -184,6 +232,8 @@ gh release create v1.1.0 "release/INIMD-Setup-1.1.0.exe" "release/INIMD-Portable
 ## English
 
 INIMD is a lightweight, Arabic-first Markdown desktop editor for Windows by **INI** (contact: [ibrahim.noshy@hotmail.com](mailto:ibrahim.noshy@hotmail.com)). It offers a bilingual Arabic/English interface, RTL/LTR auto-direction, split preview with synced scrolling, in-preview find (`Ctrl + F`), offline PDF and Word export, optional autosave, reload on external file changes, and GitHub-based auto-update. Install per-user (no admin rights) from the [latest release](https://github.com/inisoliman/INIMD/releases/latest); the repository is private, so update checks need a `repo` GitHub token in **Settings → Updates**.
+
+An ultra-light **INIMD Lite** build (Tauri 2 + WebView2, ~3.5 MB installer) reuses the same React UI for slow connections and older machines. It is published as a prerelease under the `lite-v*` tag so it never shadows the `latest` release used by the updater. Lite exports PDF via headless Edge/Chrome and can only check for updates (downloads are manual).
 
 ## تطوير
 

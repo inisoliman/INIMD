@@ -1,6 +1,6 @@
 {
   "name": "inimd",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "INIMD — محرر وعارض Markdown عربي لويندوز مع تصدير PDF و Word",
   "main": "./out/main/index.js",
   "author": "INI <ibrahim.noshy@hotmail.com>",
@@ -19,9 +19,16 @@
     "check:ui": "node scripts/ui-check.mjs",
     "check:packaged": "node scripts/packaged-check.mjs",
     "check:update": "node scripts/update-check.mjs",
+    "check:lite": "node lite/scripts/smoke.mjs",
+    "lite:dist": "npm --prefix lite run dist",
     "sample:export": "node scripts/export-sample.mjs"
   },
   "dependencies": {
+    "docx": "^9.15.2",
+    "electron-updater": "^6.8.11",
+    "markdown-it": "^15.0.3"
+  },
+  "devDependencies": {
     "@codemirror/autocomplete": "^6.20.4",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-markdown": "^6.5.2",
@@ -31,27 +38,22 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.15",
     "@lezer/highlight": "^1.2.5",
-    "codemirror": "^6.0.2",
-    "docx": "^9.15.2",
-    "dompurify": "^3.4.17",
-    "electron-updater": "^6.8.11",
-    "highlight.js": "^11.12.0",
-    "markdown-it": "^15.0.3",
-    "markdown-it-footnote": "^4.0.0",
-    "markdown-it-task-lists": "^2.1.1",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
-  },
-  "devDependencies": {
     "@types/markdown-it": "^14.2.0",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
+    "codemirror": "^6.0.2",
+    "dompurify": "^3.4.17",
     "electron": "^45.2.2",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "highlight.js": "^11.12.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-task-lists": "^2.1.1",
     "playwright": "^1.64.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
   }

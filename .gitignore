@@ -11,8 +11,13 @@ Thumbs.db
 selftest-output/
 .brain/
 
+# Tauri (INIMD Lite)
+lite/src-tauri/target/
+lite/src-tauri/gen/schemas/
+
 # مخرجات الاختبارات والنماذج الوسيطة
 docs/test-output/
 docs/.test-sample.md
+docs/.lite-test-sample.md
 docs/samples/pdf-pages-*.png
 docs/samples/docx-check/

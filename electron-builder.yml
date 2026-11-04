@@ -11,13 +11,34 @@ files:
   - resources/**/*
   - package.json
   - node_modules/**/*
+  # لا نحتاج ملفات الأنواع أو الخرائط أو المصادر وقت التشغيل
+  - '!node_modules/**/*.d.ts'
+  - '!node_modules/**/*.d.cts'
+  - '!node_modules/**/*.d.mts'
+  - '!node_modules/**/*.map'
+  - '!node_modules/**/README*'
+  - '!node_modules/**/CHANGELOG*'
+  - '!node_modules/**/test/**'
+  - '!node_modules/**/tests/**'
+  - '!node_modules/**/__tests__/**'
+  - '!node_modules/**/docs/**'
+  - '!node_modules/**/example/**'
+  - '!node_modules/**/examples/**'
+  # نسخ docx المكررة غير المستخدمة (نستخدم dist/index.cjs فقط)
+  - '!node_modules/docx/dist/*.iife.js'
+  - '!node_modules/docx/dist/*.umd.cjs'
+  - '!node_modules/docx/dist/*.ts'
 
 extraResources:
   - from: resources
     to: resources
 
 asar: true
-compression: normal
+compression: maximum
+# نُبقي لغتين فقط بدل 55 لغة (توفير ~45 ميجابايت على القرص)
+electronLanguages:
+  - ar
+  - en-US
 
 win:
   icon: build/icon.ico

@@ -1,0 +1,23 @@
+{
+  "name": "inimd-lite",
+  "private": true,
+  "version": "1.0.0",
+  "description": "INIMD Lite — نسخة خفيفة من INIMD مبنية على Tauri وWebView2",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "dist": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

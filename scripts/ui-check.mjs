@@ -1,5 +1,5 @@
 import { _electron as electron } from 'playwright'
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,6 +19,24 @@ const log = (message) => {
 
 log('start')
 copyFileSync(sample, working)
+
+// اجعل بداية الاختبار محددة: عربي + فاتح + بلا حفظ تلقائي
+const settingsFile = join(process.env.APPDATA ?? '', 'INIMD', 'settings.json')
+mkdirSync(dirname(settingsFile), { recursive: true })
+let savedSettings = {}
+try {
+  savedSettings = JSON.parse(readFileSync(settingsFile, 'utf8'))
+} catch {
+  savedSettings = {}
+}
+writeFileSync(
+  settingsFile,
+  JSON.stringify(
+    { ...savedSettings, language: 'ar', theme: 'light', autosave: false, defaultDirection: 'auto' },
+    null,
+    2
+  )
+)
 
 const pdfOut = join(outputDir, 'sample.pdf')
 const docxOut = join(outputDir, 'sample.docx')
@@ -62,6 +80,22 @@ win.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
 await win.waitForLoadState('domcontentloaded')
 await win.waitForTimeout(1800)
 
+const openSettings = async () => {
+  await app.evaluate(({ Menu }) => {
+    const entries = Menu.getApplicationMenu()?.items ?? []
+    for (const top of entries) {
+      for (const sub of top.submenu?.items ?? []) {
+        if (sub.accelerator === 'CmdOrCtrl+,') {
+          sub.click()
+          return
+        }
+      }
+    }
+    throw new Error('settings menu item not found')
+  })
+  await win.waitForTimeout(300)
+}
+
 const report = {}
 report.title = await win.title()
 report.hasArabic = /[\u0600-\u06FF]/.test(await win.locator('.md-body').innerText())
@@ -76,22 +110,22 @@ await win.screenshot({ path: join(docs, 'screenshot-main.png') })
 log('screenshots done')
 
 // theme cycle: light -> dark
-await win.locator('.tb[title^="المظهر"]').click()
+await win.locator('.toolbar .icon-only').nth(2).click()
 await win.waitForTimeout(350)
 report.darkTheme = await win.evaluate(() => document.documentElement.dataset.theme)
 await win.screenshot({ path: join(docs, 'screenshot-dark.png') })
 
 // preview only
-await win.getByTitle('المعاينة فقط').click()
+await win.locator('.toolbar .segmented button').nth(2).click()
 await win.waitForTimeout(450)
 await win.screenshot({ path: join(docs, 'screenshot-preview.png') })
 report.previewOnlyEditorHidden = (await win.locator('.cm-editor').count()) === 0
 
 // back to split + light theme
-await win.getByTitle('عرض مقسوم').click()
+await win.locator('.toolbar .segmented button').nth(1).click()
 await win.waitForTimeout(300)
-await win.locator('.tb[title^="المظهر"]').click() // dark -> system
-await win.locator('.tb[title^="المظهر"]').click() // system -> light
+await win.locator('.toolbar .icon-only').nth(2).click() // dark -> system
+await win.locator('.toolbar .icon-only').nth(2).click() // system -> light
 await win.waitForTimeout(300)
 log('theme done')
 
@@ -131,7 +165,7 @@ report.externalDialog = await win.locator('.modal').count()
 log('external change done')
 
 // find inside the preview (Ctrl+F)
-await win.getByTitle('المعاينة فقط').click()
+await win.locator('.toolbar .segmented button').nth(2).click()
 await win.waitForTimeout(400)
 await win.locator('.md-body').click()
 await win.keyboard.press('Control+f')
@@ -151,15 +185,14 @@ report.findNextCount = (await win.locator('.preview-find-count').innerText()).tr
 await win.keyboard.press('Escape')
 await win.waitForTimeout(300)
 report.findClosed = (await win.locator('.preview-find').count()) === 0
-await win.getByTitle('عرض مقسوم').click()
+await win.locator('.toolbar .segmented button').nth(1).click()
 await win.waitForTimeout(300)
 log('find done')
 
 // language switch: Arabic -> English -> Arabic
-await win.locator('.toolbar .tb').last().click()
-await win.waitForTimeout(300)
+await openSettings()
 await win.getByRole('button', { name: 'English', exact: true }).click()
-await win.waitForTimeout(500)
+await win.waitForTimeout(600)
 report.language = await win.evaluate(() => ({
   lang: document.documentElement.lang,
   dir: document.documentElement.dir
@@ -177,16 +210,17 @@ await win.screenshot({ path: join(docs, 'screenshot-updates.png') })
 await win.locator('.settings-footer .primary-btn').click()
 await win.waitForTimeout(400)
 await win.screenshot({ path: join(docs, 'screenshot-english.png') })
-await win.locator('.toolbar .tb').last().click()
-await win.waitForTimeout(300)
+await openSettings()
 await win.getByRole('button', { name: 'العربية', exact: true }).click()
-await win.waitForTimeout(500)
+await win.waitForFunction(() => document.documentElement.lang === 'ar')
+await win.waitForTimeout(400)
 report.languageBack = await win.evaluate(() => ({
   lang: document.documentElement.lang,
   dir: document.documentElement.dir
 }))
 await win.locator('.settings-footer .primary-btn').click()
 await win.waitForTimeout(250)
+report.persistedLanguage = await win.evaluate(async () => (await window.api.getSettings()).language)
 log('language done')
 
 // export PDF through the real renderer pipeline

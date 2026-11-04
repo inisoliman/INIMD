@@ -5,7 +5,8 @@ import { dirname, extname, join, resolve } from 'path'
 import { pathToFileURL } from 'url'
 import type { ExportDocxPayload, ExportPdfPayload, MenuAction, Settings } from '../shared/types'
 import { createTranslator, type Language } from '../shared/i18n'
-import { buildDocxFile } from './docx'
+import { buildDocxFile } from '../shared/docx'
+import { nodeDocxEnv } from './docx-env'
 import { extractMarkdownArg, isMarkdownPath, readDocument } from './files'
 import { exportPdf } from './pdf'
 import { addRecent, clearRecent, getRecent, getSettings, saveSettings } from './store'
@@ -371,7 +372,7 @@ function registerIpc(): void {
         if (result.canceled || !result.filePath) return { ok: false, canceled: true }
         targetPath = result.filePath
       }
-      const buffer = await buildDocxFile(payload, settings.fontFamily)
+      const buffer = await buildDocxFile(payload, settings.fontFamily, nodeDocxEnv)
       await fs.mkdir(dirname(targetPath), { recursive: true }).catch(() => undefined)
       await fs.writeFile(targetPath, buffer)
       return { ok: true, path: targetPath }
@@ -507,7 +508,8 @@ const greeting = "مرحبا"
 `
   const docx = await buildDocxFile(
     { markdown, baseDir: outDir, defaultName: 'selftest', rtl: true, suggestedDir: outDir },
-    'Segoe UI'
+    'Segoe UI',
+    nodeDocxEnv
   )
   await fs.writeFile(join(outDir, 'selftest.docx'), docx)
 

@@ -7,7 +7,6 @@ import {
   HeadingLevel,
   ImageRun,
   LineRuleType,
-  Packer,
   Paragraph,
   ShadingType,
   Table,
@@ -17,10 +16,12 @@ import {
   VerticalAlign,
   WidthType
 } from 'docx'
-import { promises as fs } from 'fs'
-import { isAbsolute, join, resolve } from 'path'
-import { fileURLToPath } from 'url'
-import type { ExportDocxPayload } from '../shared/types'
+import type { ExportDocxPayload } from './types'
+
+export interface DocxEnv {
+  readFile(path: string): Promise<Uint8Array>
+  pack(doc: Document): Promise<Uint8Array>
+}
 
 interface MdToken {
   type: string
@@ -45,6 +46,7 @@ interface Ctx {
   quote: number
   listDepth: number
   pendingPrefix?: string
+  env: DocxEnv
 }
 
 interface RunStyle {
@@ -90,21 +92,63 @@ function findMatching(tokens: MdToken[], start: number, openType: string, closeT
 /* ------------------------------------------------------------------ */
 
 interface ImageInfo {
-  data: Buffer
+  data: Uint8Array
   type: 'png' | 'jpg' | 'gif' | 'bmp'
   width: number
   height: number
 }
 
-function detectImage(buffer: Buffer): { type: ImageInfo['type']; width: number; height: number } | null {
+const WINDOWS_DRIVE = /^[A-Za-z]:[\\/]/
+
+function decodeBase64(input: string): Uint8Array {
+  const binary = globalThis.atob(input)
+  const out = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i)
+  return out
+}
+
+function resolveImagePath(src: string, baseDir: string): string | null {
+  let raw = src
+  if (/^file:\/\//i.test(raw)) {
+    try {
+      raw = decodeURIComponent(raw.replace(/^file:\/\/\/?/i, ''))
+    } catch {
+      /* keep raw */
+    }
+  } else {
+    try {
+      raw = decodeURIComponent(raw)
+    } catch {
+      /* keep raw */
+    }
+  }
+  if (WINDOWS_DRIVE.test(raw)) return raw.replace(/\//g, '\\')
+  if (raw.startsWith('/') && /^\/[A-Za-z]:\//.test(raw)) return raw.slice(1).replace(/\//g, '\\')
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return null
+  if (!baseDir) return null
+  const parts = `${baseDir.replace(/\\/g, '/')}/${raw.replace(/\\/g, '/')}`.split('/')
+  const stack: string[] = []
+  for (const part of parts) {
+    if (!part || part === '.') continue
+    if (part === '..') {
+      if (stack.length) stack.pop()
+      continue
+    }
+    stack.push(part)
+  }
+  return stack.join('\\')
+}
+
+function detectImage(buffer: Uint8Array): { type: ImageInfo['type']; width: number; height: number } | null {
+  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
   if (buffer.length > 24 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
-    return { type: 'png', width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) }
+    return { type: 'png', width: view.getUint32(16, false), height: view.getUint32(20, false) }
   }
   if (buffer.length > 10 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
-    return { type: 'gif', width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) }
+    return { type: 'gif', width: view.getUint16(6, true), height: view.getUint16(8, true) }
   }
   if (buffer.length > 26 && buffer[0] === 0x42 && buffer[1] === 0x4d) {
-    return { type: 'bmp', width: buffer.readInt32LE(18), height: Math.abs(buffer.readInt32LE(22)) }
+    return { type: 'bmp', width: view.getInt32(18, true), height: Math.abs(view.getInt32(22, true)) }
   }
   if (buffer.length > 4 && buffer[0] === 0xff && buffer[1] === 0xd8) {
     let offset = 2
@@ -114,13 +158,13 @@ function detectImage(buffer: Buffer): { type: ImageInfo['type']; width: number; 
         continue
       }
       const marker = buffer[offset + 1]
-      const length = buffer.readUInt16BE(offset + 2)
+      const length = view.getUint16(offset + 2, false)
       const isSof = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc
       if (isSof) {
         return {
           type: 'jpg',
-          height: buffer.readUInt16BE(offset + 5),
-          width: buffer.readUInt16BE(offset + 7)
+          height: view.getUint16(offset + 5, false),
+          width: view.getUint16(offset + 7, false)
         }
       }
       offset += 2 + length
@@ -129,26 +173,20 @@ function detectImage(buffer: Buffer): { type: ImageInfo['type']; width: number; 
   return null
 }
 
-async function loadImage(src: string, baseDir: string): Promise<ImageInfo | null> {
+async function loadImage(src: string, baseDir: string, env: DocxEnv): Promise<ImageInfo | null> {
   try {
     if (!src || /^https?:\/\//i.test(src)) return null
 
-    let buffer: Buffer
+    let buffer: Uint8Array
     if (src.startsWith('data:image/')) {
       const comma = src.indexOf(',')
       if (comma < 0) return null
       if (!src.slice(0, comma).includes('base64')) return null
-      buffer = Buffer.from(src.slice(comma + 1), 'base64')
+      buffer = decodeBase64(src.slice(comma + 1))
     } else {
-      let raw = src
-      if (src.startsWith('file://')) raw = fileURLToPath(src)
-      try {
-        raw = decodeURIComponent(raw)
-      } catch {
-        /* keep raw */
-      }
-      const absolute = isAbsolute(raw) ? raw : resolve(baseDir || process.cwd(), raw)
-      buffer = await fs.readFile(absolute)
+      const absolute = resolveImagePath(src, baseDir)
+      if (!absolute) return null
+      buffer = await env.readFile(absolute)
     }
 
     const info = detectImage(buffer)
@@ -268,7 +306,7 @@ async function renderInline(token: MdToken, ctx: Ctx, base: RunStyle = {}): Prom
       case 'image': {
         const src = getAttr(child, 'src') ?? ''
         const alt = child.content || getAttr(child, 'alt') || ''
-        const info = await loadImage(src, ctx.baseDir)
+        const info = await loadImage(src, ctx.baseDir, ctx.env)
         if (info) push(imageRun(info))
         else if (alt) push(makeRun(`[صورة: ${alt}]`, { font: ctx.font }))
         break
@@ -613,7 +651,11 @@ async function renderTable(tokens: MdToken[], ctx: Ctx): Promise<Table> {
 /* Document                                                            */
 /* ------------------------------------------------------------------ */
 
-export async function buildDocxFile(payload: ExportDocxPayload, fontFamily?: string): Promise<Buffer> {
+export async function buildDocxFile(
+  payload: ExportDocxPayload,
+  fontFamily: string | undefined,
+  env: DocxEnv
+): Promise<Uint8Array> {
   const font = fontFamily || 'Segoe UI'
   const rtl = payload.rtl
   const ctx: Ctx = {
@@ -623,7 +665,8 @@ export async function buildDocxFile(payload: ExportDocxPayload, fontFamily?: str
     size: 22,
     indent: 0,
     quote: 0,
-    listDepth: 0
+    listDepth: 0,
+    env
   }
 
   const tokens = md.parse(payload.markdown, {}) as unknown as MdToken[]
@@ -672,9 +715,13 @@ export async function buildDocxFile(payload: ExportDocxPayload, fontFamily?: str
     ]
   })
 
-  return Packer.toBuffer(doc)
+  return env.pack(doc)
 }
 
-export async function exportDocxFile(payload: ExportDocxPayload, fontFamily?: string): Promise<Buffer> {
-  return buildDocxFile(payload, fontFamily)
+export async function exportDocxFile(
+  payload: ExportDocxPayload,
+  fontFamily: string | undefined,
+  env: DocxEnv
+): Promise<Uint8Array> {
+  return buildDocxFile(payload, fontFamily, env)
 }
