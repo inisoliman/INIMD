@@ -44,6 +44,10 @@
 | --- | --- |
 | ![الواجهة الإنجليزية](docs/screenshot-english.png) | ![الإعدادات](docs/screenshot-english-settings.png) |
 
+| التحديثات والتوكن |
+| --- |
+| ![التحديثات](docs/screenshot-updates.png) |
+
 ## نماذج المخرجات
 
 مخرجات حقيقية وُلّدت من [`docs/sample-ar.md`](docs/sample-ar.md):

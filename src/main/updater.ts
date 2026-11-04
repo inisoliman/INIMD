@@ -108,7 +108,3 @@ export function installUpdate(): void {
   if (!app.isPackaged) return
   setImmediate(() => autoUpdater.quitAndInstall(false, true))
 }
-
-export function getUpdateConfig(): { owner: string; repo: string } {
-  return { owner: OWNER, repo: REPO }
-}

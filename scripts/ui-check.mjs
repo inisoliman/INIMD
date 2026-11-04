@@ -169,6 +169,11 @@ report.menuLabels = await app.evaluate(({ Menu }) =>
 )
 report.toolbarNewLabel = (await win.locator('.toolbar').innerText()).replace(/\s+/g, ' ').trim().slice(0, 60)
 await win.screenshot({ path: join(docs, 'screenshot-english-settings.png') })
+await win.locator('.modal-body').evaluate((node) => {
+  node.scrollTop = node.scrollHeight
+})
+await win.waitForTimeout(400)
+await win.screenshot({ path: join(docs, 'screenshot-updates.png') })
 await win.locator('.settings-footer .primary-btn').click()
 await win.waitForTimeout(400)
 await win.screenshot({ path: join(docs, 'screenshot-english.png') })
