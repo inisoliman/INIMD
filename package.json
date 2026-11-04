@@ -15,7 +15,10 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "dist": "npm run build && electron-builder --win nsis",
     "dist:portable": "npm run build && electron-builder --win portable",
-    "selftest": "npm run build && electron . --selftest"
+    "selftest": "npm run build && electron . --selftest",
+    "check:ui": "node scripts/ui-check.mjs",
+    "check:packaged": "node scripts/packaged-check.mjs",
+    "sample:export": "node scripts/export-sample.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",

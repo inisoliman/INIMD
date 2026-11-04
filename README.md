@@ -56,10 +56,13 @@ npm run typecheck
 npm run selftest
 
 # اختبار واجهة كامل عبر Playwright: فتح ملف عربي، تحرير، حفظ، تصدير PDF وWord
-node scripts/ui-check.mjs
+npm run check:ui
+
+# التحقق من نسخة التثبيت المبنية في release/win-unpacked
+npm run check:packaged
 
 # إعادة توليد نماذج المخرجات في docs/samples
-node scripts/export-sample.mjs
+npm run sample:export
 
 # مثبّت NSIS للمستخدم الحالي (بدون صلاحيات مدير)
 npm run dist
@@ -72,6 +75,8 @@ npm run dist:portable
 
 - `Midad-Setup-1.0.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
 - `Midad-Portable-1.0.0.exe` — نسخة محمولة.
+
+> **ربط ملفات `.md`:** يسجّل المثبّت مِداد كبرنامج لفتح ملفات Markdown، لكن ويندوز 10/11 قد يحتفظ بالبرنامج الافتراضي السابق. لتثبيته افتراضياً: انقر بالزر الأيمن على أي ملف `.md` ← **فتح باستخدام** ← **اختيار تطبيق آخر** ← اختر **مِداد** ← **دائماً**.
 
 ### ملاحظة حول SmartScreen
 
