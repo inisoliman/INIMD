@@ -1,0 +1,17 @@
+node_modules/
+out/
+release/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tsbuildinfo
+selftest-output/
+
+# مخرجات الاختبارات والنماذج الوسيطة
+docs/test-output/
+docs/.test-sample.md
+docs/samples/pdf-pages-*.png
+docs/samples/docx-check/

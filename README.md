@@ -1,0 +1,148 @@
+# مِداد — محرر Markdown عربي لويندوز
+
+**مِداد** برنامج سطح مكتب خفيف وعربي أولاً لفتح ملفات Markdown وتحريرها ومعاينتها، مع تصدير مباشر إلى **PDF** و**Word (docx)** بدون إنترنت وبدون أي برامج خارجية.
+
+![أيقونة مِداد](build/icons/app-256.png)
+
+## المزايا
+
+- **ربط تلقائي بملفات `.md` و`.markdown`** عند التركيب: نقرة مزدوجة من مستكشف ويندوز تفتح الملف في مِداد، مع عنصر «فتح بواسطة».
+- **دعم عربي كامل**: كشف اتجاه تلقائي (RTL/LTR)، تبديل يدوي لكل ملف، خطوط عربية، تباعد أسطر مريح، وعزل ثنائي الاتجاه للأكواد والروابط.
+- **تحرير ومعاينة**: عرض مقسوم بمزامنة تمرير، أو تحرير فقط، أو معاينة فقط، مع فهرس عناوين جانبي وقائمة ملفات حديثة.
+- **محرر CodeMirror 6**: تمييز صياغة Markdown، إكمال تلقائي، بحث واستبدال بواجهة عربية، حزم كود، تراجع/إعادة.
+- **تصدير PDF**: بجودة الطباعة، مقاسات A4/Letter، هوامش قابلة للضبط، أرقام صفحات اختيارية، جداول وصور ونص عربي متصل.
+- **تصدير Word**: ملف `.docx` حقيقي بأنماط عناوين وجداول وقوائم، مع ضبط اتجاه RTL وخصائص `w:rtl` للنصوص العربية.
+- **حفظ تلقائي** اختياري، تنبيه التغييرات غير المحفوظة، استرجاع الملف عند تغيّره خارجياً.
+- **ثيمات**: فاتح/داكن/تلقائي، وأحجام خطوط قابلة للضبط.
+- **أمان**: عزل سياق (`contextIsolation`)، sandbox، تعطيل `nodeIntegration`، وتنقية HTML الناتج عبر DOMPurify.
+- يعمل **دون اتصال بالإنترنت** بالكامل.
+
+## لقطات
+
+| الواجهة | المعاينة العربية |
+| --- | --- |
+| ![الواجهة](docs/screenshot-main.png) | ![المعاينة](docs/screenshot-preview.png) |
+
+| الوضع الداكن |
+| --- |
+| ![الوضع الداكن](docs/screenshot-dark.png) |
+
+## نماذج المخرجات
+
+مخرجات حقيقية وُلّدت من [`docs/sample-ar.md`](docs/sample-ar.md):
+
+- [`docs/samples/midad-sample.pdf`](docs/samples/midad-sample.pdf) — صفحتان بترقيم صفحات وجدول وصورة.
+- [`docs/samples/midad-sample.docx`](docs/samples/midad-sample.docx) — مستند Word باتجاه RTL وأنماط عناوين.
+
+## التشغيل للتطوير
+
+المتطلبات: ويندوز 10/11، Node.js 20 أو أحدث.
+
+```bash
+npm install
+npm run dev
+```
+
+## البناء والتوزيع
+
+```bash
+# بناء ملفات التطبيق
+npm run build
+
+# فحص الأنواع
+npm run typecheck
+
+# اختبار آلي خاطف (يولّد PDF وWord في مجلد مؤقت)
+npm run selftest
+
+# اختبار واجهة كامل عبر Playwright: فتح ملف عربي، تحرير، حفظ، تصدير PDF وWord
+node scripts/ui-check.mjs
+
+# إعادة توليد نماذج المخرجات في docs/samples
+node scripts/export-sample.mjs
+
+# مثبّت NSIS للمستخدم الحالي (بدون صلاحيات مدير)
+npm run dist
+
+# نسخة محمولة (بدون تركيب)
+npm run dist:portable
+```
+
+تجد المخرجات في مجلد `release/`:
+
+- `Midad-Setup-1.0.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
+- `Midad-Portable-1.0.0.exe` — نسخة محمولة.
+
+### ملاحظة حول SmartScreen
+
+النسخة غير موقّعة رقمياً، لذا قد يعرض ويندوز تحذير «Windows protected your PC» عند أول تشغيل. اختر **More info → Run anyway**. لإزالة التحذير يلزم شهادة توقيع كود.
+
+## الاختصارات
+
+| الاختصار | الوظيفة |
+| --- | --- |
+| `Ctrl + N` | ملف جديد |
+| `Ctrl + O` | فتح ملف |
+| `Ctrl + S` | حفظ |
+| `Ctrl + Shift + S` | حفظ باسم |
+| `Ctrl + W` | إغلاق التبويب |
+| `Ctrl + F` | بحث واستبدال |
+| `Ctrl + B` | الشريط الجانبي |
+| `Ctrl + Shift + V` | تبديل المعاينة |
+| `Ctrl + Alt + P` | تصدير PDF |
+| `Ctrl + Alt + W` | تصدير Word |
+| `Ctrl + ,` | الإعدادات |
+
+## بنية المشروع
+
+```
+src/
+  main/            عملية Electron الرئيسية
+    index.ts       النافذة، القائمة، IPC، ربط الملفات، بروتوكول الصور
+    docx.ts        محوّل Markdown → docx مع دعم RTL
+    pdf.ts         تصدير PDF عبر printToPDF
+    files.ts       قراءة الملفات وترميزاتها
+    store.ts       الإعدادات والملفات الحديثة
+  preload/         جسر آمن (contextBridge)
+  renderer/        واجهة React
+    src/
+      components/  الواجهة: المحرر، المعاينة، التبويبات، الإعدادات…
+      lib/         markdown، print، المسارات، الإحصاءات
+      styles/      CSS
+  shared/          أنواع مشتركة
+build/             الأيقونات وإعدادات المثبّت
+scripts/           توليد الأيقونات والاختبارات الآلية
+```
+
+## التقنيات
+
+Electron · electron-vite · React 19 · TypeScript · CodeMirror 6 · markdown-it · highlight.js · DOMPurify · docx · electron-builder
+
+## النشر على GitHub
+
+المستودع غير مرفوع بعد. بعد تسجيل الدخول إلى GitHub مرة واحدة:
+
+```bash
+gh auth login
+```
+
+ثم من مجلد المشروع:
+
+```bash
+git init
+git add .
+git commit -m "مِداد: محرر Markdown عربي لويندوز مع تصدير PDF وWord"
+git branch -M main
+gh repo create midad --public --source=. --remote=origin --push
+```
+
+لإرفاق المثبّت بإصدار على GitHub:
+
+```bash
+gh release create v1.0.0 "release/Midad-Setup-1.0.0.exe" --title "مِداد 1.0.0" --notes "الإصدار الأول: محرر Markdown عربي مع تصدير PDF وWord."
+```
+
+## الترخيص
+
+MIT — راجع ملف [LICENSE](LICENSE).
+
