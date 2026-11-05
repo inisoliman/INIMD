@@ -21,6 +21,7 @@
     "check:update": "node scripts/update-check.mjs",
     "check:lite": "node lite/scripts/smoke.mjs",
     "lite:dist": "npm --prefix lite run dist",
+    "lite:portable": "npm --prefix lite run portable",
     "sample:export": "node scripts/export-sample.mjs"
   },
   "dependencies": {

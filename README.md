@@ -17,7 +17,10 @@
 
 **النسخة الخفيفة (INIMD Lite — للإنترنت الضعيف والأجهزة القديمة):**
 
-- [`INIMD.Lite_1.0.0_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.0/INIMD.Lite_1.0.0_x64-setup.exe) — مثبّت بحجم **~3.5 MB**، منشور كإصدار تجريبي بوسم `lite-v1.0.0`.
+- [`INIMD.Lite_1.0.0_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.0/INIMD.Lite_1.0.0_x64-setup.exe) — مثبّت (**3.53 MB**)، يسجّل ربط `.md` ويضع اختصاراً في قائمة ابدأ.
+- [`INIMD-Lite-1.0.0-portable.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.0/INIMD-Lite-1.0.0-portable.exe) — **نسخة محمولة (3.51 MB)**: ملف واحد فقط، لا تحتاج تثبيت ولا صلاحيات مدير.
+
+كلاهما منشور كإصدار تجريبي بوسم `lite-v1.0.0`.
 
 ## المزايا
 
@@ -42,7 +45,8 @@
 
 | المقارنة | INIMD (Electron) | INIMD Lite (Tauri) |
 | --- | --- | --- |
-| حجم المثبّت | ~109.8 MB | **~3.5 MB** |
+| حجم المثبّت | 109.8 MB | **3.53 MB** |
+| نسخة محمولة | 99.5 MB | **3.51 MB** |
 | الحجم على القرص | ~324 MB | **~4 MB** |
 | الذاكرة عند التشغيل | أعلى | **أقل بكثير** |
 | المعاينة والتحرير والبحث `Ctrl+F` | ✅ | ✅ |
@@ -126,10 +130,11 @@ npm run dist:portable
 ```bash
 npm --prefix lite install      # مرة واحدة
 npm run lite:dist              # Vite + cargo release + مثبّت NSIS
+npm run lite:portable          # نسخة محمولة: ملف تنفيذي واحد في release/
 npm run check:lite             # اختبار دخاني آلي على النسخة المبنية
 ```
 
-تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`.
+تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`، والنسخة المحمولة في `release/INIMD-Lite-1.0.0-portable.exe`.
 
 تجد مخرجات Electron في مجلد `release/`:
 

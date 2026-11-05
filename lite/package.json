@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "dist": "tauri build"
+    "dist": "tauri build",
+    "portable": "node scripts/portable.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0"
