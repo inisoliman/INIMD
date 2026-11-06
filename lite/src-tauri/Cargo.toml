@@ -1,6 +1,6 @@
 [package]
 name = "inimd-lite"
-version = "1.0.0"
+version = "1.0.1"
 description = "INIMD Lite — نسخة خفيفة من INIMD مبنية على Tauri وWebView2"
 authors = ["INI <ibrahim.noshy@hotmail.com>"]
 edition = "2021"

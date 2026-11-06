@@ -547,8 +547,10 @@ fn show_in_folder(path: String) -> Result<(), String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         Command::new("explorer")
             .raw_arg(format!("/select,\"{}\"", path))
+            .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .map(|_| ())
             .map_err(|e| e.to_string())
@@ -694,7 +696,8 @@ fn export_pdf(app: AppHandle, state: State<'_, AppState>, payload: ExportPdfPayl
     }
 
     let profile_dir = work_dir.join("profile");
-    let mut child = match Command::new(&browser)
+    let mut command = Command::new(&browser);
+    command
         .arg("--headless=new")
         .arg("--disable-gpu")
         .arg("--no-first-run")
@@ -706,9 +709,15 @@ fn export_pdf(app: AppHandle, state: State<'_, AppState>, payload: ExportPdfPayl
         .arg(format!("--print-to-pdf={}", target.to_string_lossy()))
         .arg(file_url(&html_path))
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
+        .stderr(Stdio::null());
+    // لا نريد أن تظهر نافذة كونسول عابرة أثناء تصدير PDF.
+    #[cfg(windows)]
     {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+
+    let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
             let _ = fs::remove_dir_all(&work_dir);

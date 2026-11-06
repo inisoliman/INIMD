@@ -17,10 +17,10 @@
 
 **النسخة الخفيفة (INIMD Lite — للإنترنت الضعيف والأجهزة القديمة):**
 
-- [`INIMD.Lite_1.0.0_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.0/INIMD.Lite_1.0.0_x64-setup.exe) — مثبّت (**3.53 MB**)، يسجّل ربط `.md` ويضع اختصاراً في قائمة ابدأ.
-- [`INIMD-Lite-1.0.0-portable.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.0/INIMD-Lite-1.0.0-portable.exe) — **نسخة محمولة (3.51 MB)**: ملف واحد فقط، لا تحتاج تثبيت ولا صلاحيات مدير.
+- [`INIMD.Lite_1.0.1_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.1/INIMD.Lite_1.0.1_x64-setup.exe) — مثبّت (**3.53 MB**)، يسجّل ربط `.md` ويضع اختصاراً في قائمة ابدأ.
+- [`INIMD-Lite-1.0.1-portable.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.0.1/INIMD-Lite-1.0.1-portable.exe) — **نسخة محمولة (3.51 MB)**: ملف واحد فقط، لا تحتاج تثبيت ولا صلاحيات مدير.
 
-كلاهما منشور كإصدار تجريبي بوسم `lite-v1.0.0`.
+كلاهما منشور كإصدار تجريبي بوسم `lite-v1.0.1`. (الإصدار 1.0.1 يصلح نافذة `cmd` السوداء التي كانت تظهر خلف التطبيق.)
 
 ## المزايا
 
@@ -41,7 +41,7 @@
 
 ## النسخة الخفيفة: INIMD Lite
 
-نسخة ثانية من البرنامج مبنية على **Tauri 2 + WebView2** بواجهة React نفسها، موجهة لمن لديه **إنترنت ضعيف** أو قرص صغير أو جهاز قديم. المثبّت أصغر بـ **31 مرة** من النسخة الكاملة. صدرت كإصدار تجريبي بوسم `lite-v1.0.0` ولا تؤثر إطلاقاً على النسخة الكاملة المنشورة.
+نسخة ثانية من البرنامج مبنية على **Tauri 2 + WebView2** بواجهة React نفسها، موجهة لمن لديه **إنترنت ضعيف** أو قرص صغير أو جهاز قديم. المثبّت أصغر بـ **31 مرة** من النسخة الكاملة. صدرت كإصدار تجريبي بوسم `lite-v1.0.1` ولا تؤثر إطلاقاً على النسخة الكاملة المنشورة.
 
 | المقارنة | INIMD (Electron) | INIMD Lite (Tauri) |
 | --- | --- | --- |
@@ -134,7 +134,7 @@ npm run lite:portable          # نسخة محمولة: ملف تنفيذي وا
 npm run check:lite             # اختبار دخاني آلي على النسخة المبنية
 ```
 
-تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`، والنسخة المحمولة في `release/INIMD-Lite-1.0.0-portable.exe`.
+تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`، والنسخة المحمولة في `release/INIMD-Lite-1.0.1-portable.exe`.
 
 تجد مخرجات Electron في مجلد `release/`:
 
@@ -238,12 +238,15 @@ gh release upload v1.1.1 "release/INIMD-Portable-1.1.1.exe" --clobber
 gh release edit v1.1.1 --draft=false --latest
 
 # النسخة الخفيفة (prerelease، لا تلمس latest)
-gh release create lite-v1.0.0 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.0.0_x64-setup.exe" --prerelease --title "INIMD Lite 1.0.0" --notes "نسخة خفيفة تجريبية."
+npm run lite:dist && npm run lite:portable
+gh release create lite-v1.0.1 --prerelease --title "INIMD Lite 1.0.1" --notes "نسخة خفيفة تجريبية."
+gh release upload lite-v1.0.1 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.0.1_x64-setup.exe" --clobber
+gh release upload lite-v1.0.1 "release/INIMD-Lite-1.0.1-portable.exe" --clobber
 ```
 
 > إن رفعت كل الملفات في أمر `gh release create` واحد على اتصال بطيء فقد يفشل بـ `HTTP 408: Upload body timed out`. الطريقة أعلاه تتجنّب ذلك.
 
-> يرفع GitHub الأصول ويستبدل المسافات في أسماء الملفات بنقاط، فيصبح الأصل `INIMD.Lite_1.0.0_x64-setup.exe`.
+> يرفع GitHub الأصول ويستبدل المسافات في أسماء الملفات بنقاط، فيصبح الأصل `INIMD.Lite_1.0.1_x64-setup.exe`.
 
 > إن كان المستودع خاصاً، أضف التوكن إلى الإعدادات (أو `INIMD_GH_TOKEN`) كما في قسم **التحديثات** أعلاه.
 
