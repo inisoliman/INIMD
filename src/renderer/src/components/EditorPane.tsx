@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { basicSetup } from 'codemirror'
-import { Compartment, EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { Compartment, EditorState, StateEffect, StateField, type Range, type Text } from '@codemirror/state'
+import { Decoration, DecorationSet, EditorView } from '@codemirror/view'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { tags } from '@lezer/highlight'
 import type { Settings } from '@shared/types'
+import type { LineRange } from '../lib/diff'
 import { useI18n } from '../lib/i18n'
 import type { Tab } from '../types'
 
@@ -60,6 +61,10 @@ const inimdTheme = EditorView.theme({
   },
   '.cm-activeLine': { backgroundColor: 'var(--active-line)' },
   '.cm-activeLineGutter': { backgroundColor: 'var(--active-line)', color: 'var(--accent)' },
+  '.cm-changed-line': {
+    backgroundColor: 'var(--change-bg)',
+    boxShadow: 'inset 2px 0 0 0 var(--change-edge)'
+  },
   '&.cm-focused': { outline: 'none' },
   '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
     backgroundColor: 'var(--selection) !important'
@@ -130,6 +135,40 @@ const inimdHighlight = HighlightStyle.define([
   { tag: tags.variableName, color: 'var(--syn-var)' }
 ])
 
+/* تظليل أسطر المحرر التي تغيّرت خارجياً --------------------------- */
+const setChangedLines = StateEffect.define<LineRange[] | null>()
+
+function buildChangedDecorations(ranges: LineRange[] | null, doc: Text): DecorationSet {
+  if (!ranges || !ranges.length) return Decoration.none
+  const marks: Range<Decoration>[] = []
+  for (const range of ranges) {
+    const first = Math.min(Math.max(range.start, 0), doc.lines - 1)
+    const last = Math.min(Math.max(range.end, first), doc.lines - 1)
+    for (let line = first; line <= last; line += 1) {
+      marks.push(Decoration.line({ class: 'cm-changed-line' }).range(doc.line(line + 1).from))
+    }
+  }
+  return Decoration.set(marks, true)
+}
+
+const changedLinesField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(decorations, tr) {
+    let next = decorations.map(tr.changes)
+    for (const effect of tr.effects) {
+      if (effect.is(setChangedLines)) next = buildChangedDecorations(effect.value, tr.state.doc)
+    }
+    return next
+  },
+  provide: (field) => EditorView.decorations.from(field)
+})
+
+const changesKeyOf = (tab: Tab): string => {
+  const change = tab.changes
+  if (!change || !change.ranges.length) return ''
+  return `${change.expiresAt}|${change.ranges.map((range) => `${range.start}-${range.end}`).join(',')}`
+}
+
 interface EditorPaneProps {
   tab: Tab
   settings: Settings
@@ -161,6 +200,7 @@ export function EditorPane({ tab, settings, onChange, onScrollRatio, onViewReady
           basicSetup,
           markdown({ base: markdownLanguage, codeLanguages: languages }),
           EditorView.lineWrapping,
+          changedLinesField,
           phrasesCompartment.current.of(EditorState.phrases.of(language === 'ar' ? ARABIC_PHRASES : {})),
           inimdTheme,
           syntaxHighlighting(inimdHighlight),
@@ -209,6 +249,15 @@ export function EditorPane({ tab, settings, onChange, onScrollRatio, onViewReady
       })
     }
   }, [tab.content])
+
+  const changesKey = `${tab.id}|${changesKeyOf(tab)}`
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({ effects: setChangedLines.of(tab.changes?.ranges ?? null) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changesKey])
 
   useEffect(() => {
     viewRef.current?.requestMeasure()

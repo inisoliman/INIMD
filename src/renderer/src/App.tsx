@@ -26,6 +26,7 @@ import { TabBar } from './components/TabBar'
 import { Toolbar } from './components/Toolbar'
 import { Welcome } from './components/Welcome'
 import { I18nProvider } from './lib/i18n'
+import { diffLineRanges } from './lib/diff'
 import { renderMarkdown } from './lib/markdown'
 import { baseNameOf, dirnameOf, stripExtension } from './lib/paths'
 import { countLines, countWords, detectDirection, makeId } from './lib/misc'
@@ -46,6 +47,9 @@ interface DialogState {
 
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 
+/** مدة بقاء تظليل التغييرات الخارجية: ساعة واحدة. */
+const CHANGE_TTL = 60 * 60 * 1000
+
 function emptyTab(index: number, direction: Direction, t: TFunction): Tab {
   return {
     id: makeId(),
@@ -56,7 +60,8 @@ function emptyTab(index: number, direction: Direction, t: TFunction): Tab {
     mtimeMs: null,
     direction,
     dirLocked: false,
-    savedAt: null
+    savedAt: null,
+    changes: null
   }
 }
 
@@ -76,7 +81,7 @@ export default function App(): React.ReactElement {
   const [dialog, setDialog] = useState<DialogState | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loaded, setLoaded] = useState(false)
-
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
   const tabsRef = useRef<Tab[]>([])
   const activeIdRef = useRef<string | null>(null)
   const settingsRef = useRef<Settings>(DEFAULT_SETTINGS)
@@ -102,17 +107,27 @@ export default function App(): React.ReactElement {
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? null
   const deferredContent = useDeferredValue(activeTab?.content ?? '')
 
+  // لا نمرّر نطاقات التظليل قبل أن تصل المعاينة إلى نفس محتوى التبويب.
+  const changeRanges = useMemo(() => {
+    const change = activeTab?.changes
+    if (!change || !change.ranges.length) return undefined
+    if (deferredContent !== activeTab?.content) return undefined
+    return change.ranges
+  }, [activeTab?.changes, activeTab?.content, deferredContent])
+
   const rendered = useMemo(
     () =>
       renderMarkdown(deferredContent, {
         baseDir: activeTab?.path ? dirnameOf(activeTab.path) : '',
-        direction: activeTab?.direction ?? 'rtl'
+        direction: activeTab?.direction ?? 'rtl',
+        changedLines: changeRanges
       }),
-    [deferredContent, activeTab?.path, activeTab?.direction]
+    [deferredContent, activeTab?.path, activeTab?.direction, changeRanges]
   )
 
   const words = useMemo(() => countWords(activeTab?.content ?? ''), [activeTab?.content])
   const lines = useMemo(() => countLines(activeTab?.content ?? ''), [activeTab?.content])
+  const headingsKey = useMemo(() => rendered.headings.map((heading) => heading.id).join('|'), [rendered.headings])
 
   const notify = useCallback((text: string, kind: Toast['kind'] = 'info') => {
     const id = makeId()
@@ -414,11 +429,13 @@ export default function App(): React.ReactElement {
     setTabs((prev) =>
       prev.map((tab) => {
         if (tab.id !== id) return tab
+        // تحديث برمجي من المحرر بعد تعديل خارجي: لا نمسح التظليل.
+        if (tab.content === content) return tab
         let direction = tab.direction
         if (!tab.dirLocked && !tab.content.trim() && content.trim()) {
           direction = detectDirection(content, tab.direction)
         }
-        return { ...tab, content, direction }
+        return { ...tab, content, direction, changes: null }
       })
     )
   }, [])
@@ -439,11 +456,18 @@ export default function App(): React.ReactElement {
   /* -------------------------------------------------------------- */
   const applyDiskContent = useCallback((tabId: string, file: OpenedFile) => {
     setTabs((prev) =>
-      prev.map((item) =>
-        item.id === tabId
-          ? { ...item, content: file.content, savedContent: file.content, mtimeMs: file.mtimeMs }
-          : item
-      )
+      prev.map((item) => {
+        if (item.id !== tabId) return item
+        const ranges = diffLineRanges(item.content, file.content)
+        const now = Date.now()
+        return {
+          ...item,
+          content: file.content,
+          savedContent: file.content,
+          mtimeMs: file.mtimeMs,
+          changes: ranges.length ? { ranges, expiresAt: now + CHANGE_TTL, at: now } : null
+        }
+      })
     )
   }, [])
 
@@ -495,6 +519,27 @@ export default function App(): React.ReactElement {
     },
     [applyDiskContent, notify]
   )
+
+  // إزالة التظليل تلقائياً بعد ساعة من التعديل الخارجي.
+  const changeExpiry = tabs
+    .map((tab) => tab.changes?.expiresAt ?? 0)
+    .filter(Boolean)
+    .join(',')
+
+  useEffect(() => {
+    if (!changeExpiry) return
+    const next = Math.min(...changeExpiry.split(',').map(Number))
+    const delay = Math.max(0, next - Date.now()) + 60
+    const timer = window.setTimeout(() => {
+      const now = Date.now()
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.changes && tab.changes.expiresAt <= now ? { ...tab, changes: null } : tab
+        )
+      )
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [changeExpiry])
 
   const pathsKey = useMemo(
     () =>
@@ -766,6 +811,47 @@ export default function App(): React.ReactElement {
     [scrollPreviewTo]
   )
 
+  /* -------------------------------------------------------------- */
+  /* Active heading in the table of contents (scroll spy)           */
+  /* -------------------------------------------------------------- */
+  useEffect(() => {
+    const headings = rendered.headings
+    const container = previewRef.current
+    setActiveHeadingId(headings[0]?.id ?? null)
+    if (!container || !headings.length) return
+
+    let frame = 0
+    const update = (): void => {
+      frame = 0
+      const containerTop = container.getBoundingClientRect().top
+      const scrollTop = container.scrollTop
+      const threshold = scrollTop + 70
+      let current = headings[0]?.id ?? null
+      for (const heading of headings) {
+        const element = container.querySelector<HTMLElement>(`#${CSS.escape(heading.id)}`)
+        if (!element) continue
+        const offset = element.getBoundingClientRect().top - containerTop + scrollTop
+        if (offset <= threshold) current = heading.id
+        else break
+      }
+      if (scrollTop + container.clientHeight >= container.scrollHeight - 4) {
+        current = headings[headings.length - 1]?.id ?? current
+      }
+      setActiveHeadingId((previous) => (previous === current ? previous : current))
+    }
+    const onScroll = (): void => {
+      if (!frame) frame = window.requestAnimationFrame(update)
+    }
+
+    update()
+    container.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      container.removeEventListener('scroll', onScroll)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headingsKey, layout, activeId, sidebar])
+
   const openLocal = useCallback(
     (path: string) => {
       if (MD_PATTERN.test(path)) void openPath(path)
@@ -832,13 +918,33 @@ export default function App(): React.ReactElement {
           </div>
         ) : null}
 
+        {activeTab?.changes?.ranges.length ? (
+          <div className="change-banner">
+            <Icon name="sparkle" size={15} />
+            <span>{t('change.banner')}</span>
+            <button
+              className="ghost-btn small"
+              onClick={() =>
+                setTabs((prev) =>
+                  prev.map((tab) => (tab.id === activeTab.id ? { ...tab, changes: null } : tab))
+                )
+              }
+            >
+              {t('change.hide')}
+            </button>
+          </div>
+        ) : null}
+
         <div className="main">
           {sidebar && activeTab ? (
             <Sidebar
               headings={rendered.headings}
               recent={recent}
-              activeHeadingId={null}
-              onHeading={scrollPreviewTo}
+              activeHeadingId={activeHeadingId}
+              onHeading={(id) => {
+                setActiveHeadingId(id)
+                scrollPreviewTo(id)
+              }}
               onOpenRecent={(path) => void openPath(path)}
               onClearRecent={() => {
                 void window.api.clearRecent().then(() => setRecent([]))
@@ -894,6 +1000,7 @@ export default function App(): React.ReactElement {
                       onCloseFind={() => setFindOpen(false)}
                       onLocalFile={openLocal}
                       onAnchor={handlePreviewAnchor}
+                      onCopied={() => notify(tRef.current('context.copied'), 'success')}
                     />
                   </section>
                 ) : null}

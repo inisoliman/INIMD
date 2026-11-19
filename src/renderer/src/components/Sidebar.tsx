@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { Heading } from '../lib/markdown'
 import { useI18n } from '../lib/i18n'
 import { relativeTime } from '../lib/misc'
@@ -24,6 +25,19 @@ export function Sidebar({
   onShowInFolder
 }: SidebarProps): React.ReactElement {
   const { t, language } = useI18n()
+  const navRef = useRef<HTMLElement | null>(null)
+  const activeRef = useRef<HTMLButtonElement | null>(null)
+
+  // يُبقي البند النشط ظاهراً داخل الفهرس عند التمرير في ملف طويل.
+  useEffect(() => {
+    const nav = navRef.current
+    const active = activeRef.current
+    if (!nav || !active) return
+    const navRect = nav.getBoundingClientRect()
+    const activeRect = active.getBoundingClientRect()
+    if (activeRect.top < navRect.top) nav.scrollTop -= navRect.top - activeRect.top + 6
+    else if (activeRect.bottom > navRect.bottom) nav.scrollTop += activeRect.bottom - navRect.bottom + 6
+  }, [activeHeadingId])
 
   return (
     <aside className="sidebar">
@@ -34,13 +48,15 @@ export function Sidebar({
       </div>
 
       {headings.length ? (
-        <nav className="toc" aria-label={t('sidebar.tocAria')}>
+        <nav className="toc" aria-label={t('sidebar.tocAria')} ref={navRef}>
           {headings.map((heading) => (
             <button
               key={heading.id}
+              ref={activeHeadingId === heading.id ? activeRef : undefined}
               className={`toc-item level-${heading.level} ${activeHeadingId === heading.id ? 'active' : ''}`}
               onClick={() => onHeading(heading.id)}
               title={heading.text}
+              aria-current={activeHeadingId === heading.id ? 'location' : undefined}
             >
               {heading.text}
             </button>

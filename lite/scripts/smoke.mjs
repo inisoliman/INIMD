@@ -135,6 +135,60 @@ try {
   }
   report.externalReload = externalReload
   report.firstHeading = before
+  report.changeHighlight = await page.locator('.md-body .md-changed').count()
+  report.changeBanner = await page.locator('.change-banner').isVisible()
+
+  // فهرس المحتويات: البند النشط يتبع التمرير
+  await page.locator('.preview-scroll').evaluate((node) => {
+    node.scrollTop = node.scrollHeight
+  })
+  await sleep(500)
+  report.tocActiveAtBottom = await page
+    .locator('.toc-item.active')
+    .innerText()
+    .catch(() => '')
+  await page.locator('.preview-scroll').evaluate((node) => {
+    node.scrollTop = 0
+  })
+  await sleep(500)
+  report.tocActiveAtTop = await page
+    .locator('.toc-item.active')
+    .innerText()
+    .catch(() => '')
+
+  // النقر الأيمن على نص محدد في المعاينة -> قائمة نسخ
+  await page.evaluate(() => {
+    const paragraph = document.querySelector('.md-body p')
+    if (!paragraph) return
+    const range = document.createRange()
+    range.selectNodeContents(paragraph)
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+    const rect = paragraph.getBoundingClientRect()
+    paragraph.dispatchEvent(
+      new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: Math.round(rect.left + 12),
+        clientY: Math.round(rect.top + 12)
+      })
+    )
+  })
+  await sleep(250)
+  report.contextMenuVisible = await page.locator('.preview-menu').isVisible()
+  await page.locator('.preview-menu-item').first().click()
+  await sleep(300)
+  report.contextMenuClosed = (await page.locator('.preview-menu').count()) === 0
+  report.copiedText = await page
+    .evaluate(async () => {
+      try {
+        return await navigator.clipboard.readText()
+      } catch {
+        return ''
+      }
+    })
+    .catch(() => '')
 
   // تصدير PDF عبر Edge headless (مسار Rust الحقيقي)
   report.pdf = await page.evaluate(

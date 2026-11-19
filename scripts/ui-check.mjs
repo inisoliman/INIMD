@@ -162,7 +162,51 @@ for (let i = 0; i < 24; i += 1) {
 report.externalReload = externalReload
 report.externalDirty = (await win.locator('.tab-dot.on').count()) > 0
 report.externalDialog = await win.locator('.modal').count()
+report.changeHighlight = await win.locator('.md-body .md-changed').count()
+report.changeBanner = await win.locator('.change-banner').isVisible()
+report.editorChangedLines = await win.locator('.cm-changed-line').count()
 log('external change done')
+
+// فهرس المحتويات: البند النشط يتبع التمرير
+await win.locator('.preview-scroll').evaluate((node) => {
+  node.scrollTop = node.scrollHeight
+})
+await win.waitForTimeout(500)
+report.tocActiveAtBottom = await win.locator('.toc-item.active').count()
+report.tocActiveTextAtBottom = (await win.locator('.toc-item.active').innerText().catch(() => '')).trim()
+await win.locator('.preview-scroll').evaluate((node) => {
+  node.scrollTop = 0
+})
+await win.waitForTimeout(500)
+report.tocActiveAtTop = (await win.locator('.toc-item.active').innerText().catch(() => '')).trim()
+
+// النقر الأيمن على نص محدد في المعاينة -> قائمة نسخ
+await win.evaluate(() => {
+  const paragraph = document.querySelector('.md-body p')
+  if (!paragraph) return
+  const range = document.createRange()
+  range.selectNodeContents(paragraph)
+  const selection = window.getSelection()
+  selection?.removeAllRanges()
+  selection?.addRange(range)
+  const rect = paragraph.getBoundingClientRect()
+  paragraph.dispatchEvent(
+    new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      clientX: Math.round(rect.left + 12),
+      clientY: Math.round(rect.top + 12)
+    })
+  )
+})
+await win.waitForTimeout(300)
+report.contextMenuVisible = await win.locator('.preview-menu').isVisible()
+report.contextMenuItems = await win.locator('.preview-menu-item').count()
+await win.locator('.preview-menu-item').first().click()
+await win.waitForTimeout(400)
+report.contextMenuClosed = (await win.locator('.preview-menu').count()) === 0
+report.copiedText = await app.evaluate(({ clipboard }) => clipboard.readText())
+log('context menu done')
 
 // find inside the preview (Ctrl+F)
 await win.locator('.toolbar .segmented button').nth(2).click()

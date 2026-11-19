@@ -229,7 +229,15 @@ const ar = {
 
   'update.available': 'توفّر تحديث {version}',
   'update.downloaded': 'تم تنزيل التحديث {version}',
-  'update.error': 'تعذّر التحديث: {error}'
+  'update.error': 'تعذّر التحديث: {error}',
+
+  'change.banner': 'تظليل خفيف على ما تغيّر خارجياً — يختفي تلقائياً بعد ساعة',
+  'change.hide': 'إخفاء التظليل',
+  'context.copy': 'نسخ',
+  'context.copyAll': 'نسخ كل المحتوى',
+  'context.copyLink': 'نسخ الرابط',
+  'context.selectAll': 'تحديد الكل',
+  'context.copied': 'تم نسخ النص'
 } as const
 
 export type MessageKey = keyof typeof ar
@@ -459,7 +467,15 @@ const en: Record<MessageKey, string> = {
 
   'update.available': 'Update {version} is available',
   'update.downloaded': 'Update {version} has been downloaded',
-  'update.error': 'Update failed: {error}'
+  'update.error': 'Update failed: {error}',
+
+  'change.banner': 'Recently changed lines are highlighted — this fades out after one hour',
+  'change.hide': 'Hide highlight',
+  'context.copy': 'Copy',
+  'context.copyAll': 'Copy all content',
+  'context.copyLink': 'Copy link',
+  'context.selectAll': 'Select all',
+  'context.copied': 'Text copied'
 }
 
 const DICTIONARIES: Record<Language, Record<MessageKey, string>> = { ar, en }

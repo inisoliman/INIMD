@@ -3,6 +3,7 @@ import footnote from 'markdown-it-footnote'
 import taskLists from 'markdown-it-task-lists'
 import DOMPurify from 'dompurify'
 import type { Direction } from '@shared/types'
+import { intersects, type LineRange } from './diff'
 import hljs from './highlight'
 import { isExternalHref, resolveLocalPath, toAssetUrl } from './paths'
 
@@ -22,7 +23,15 @@ interface RenderEnv {
   baseDir: string
   headings: Heading[]
   sequence: number
+  changed: LineRange[]
   [key: string]: unknown
+}
+
+/** هل يقع هذا البلوك داخل نطاق أسطر تغيّرت مؤخراً؟ */
+const isChangedBlock = (env: unknown, token: { map: [number, number] | null }): boolean => {
+  const ranges = envOf(env).changed
+  if (!ranges || !ranges.length || !token.map) return false
+  return intersects(ranges, token.map[0], token.map[1])
 }
 
 const envOf = (env: unknown): RenderEnv => env as RenderEnv
@@ -43,9 +52,10 @@ const md = new MarkdownIt({
   .use(footnote as never)
   .use(taskLists as never, { enabled: false, label: true })
 
-md.renderer.rules.fence = (tokens, idx) => {
+md.renderer.rules.fence = (tokens, idx, options, env) => {
   const token = tokens[idx]
   const info = token.info.trim().split(/\s+/)[0] || ''
+  const changed = isChangedBlock(env, token)
   let body: string
   if (info && hljs.getLanguage(info)) {
     try {
@@ -56,7 +66,7 @@ md.renderer.rules.fence = (tokens, idx) => {
   } else {
     body = escapeHtml(token.content)
   }
-  return `<pre class="hljs" dir="ltr"><code>${body}</code></pre>\n`
+  return `<pre class="hljs${changed ? ' md-changed' : ''}" dir="ltr"><code>${body}</code></pre>\n`
 }
 
 md.renderer.rules.image = (tokens, idx, options, env, self) => {
@@ -85,7 +95,10 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
   return self.renderToken(tokens, idx, options)
 }
 
-md.renderer.rules.table_open = () => '<div class="table-wrap"><table>\n'
+md.renderer.rules.table_open = (tokens, idx, options, env) => {
+  const changed = isChangedBlock(env, tokens[idx])
+  return `<div class="table-wrap${changed ? ' md-changed' : ''}"><table>\n`
+}
 md.renderer.rules.table_close = () => '</table></div>\n'
 
 md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
@@ -109,6 +122,18 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   return self.renderToken(tokens, idx, options)
 }
 
+// يضيف صنف `md-changed` إلى كل بلوك Markdown يتقاطع مع أسطر تغيّرت خارجياً.
+md.core.ruler.push('inimd_changed_blocks', (state) => {
+  const ranges = envOf(state.env).changed
+  if (!ranges || !ranges.length) return
+  for (const token of state.tokens) {
+    if (!token.map) continue
+    // fence وtable_open لهما قواعد عرض مخصّصة تتعامل مع الصنف بنفسها.
+    if (token.type === 'fence' || token.type === 'table_open') continue
+    if (intersects(ranges, token.map[0], token.map[1])) token.attrJoin('class', 'md-changed')
+  }
+})
+
 function decorateTaskLists(html: string): string {
   return html.replace(/<input([^>]*?)class="task-list-item-checkbox"([^>]*?)>/g, (_match, before: string, after: string) => {
     const checked = /\schecked(=|\s|\/|$)/.test(`${before} ${after}`)
@@ -118,12 +143,13 @@ function decorateTaskLists(html: string): string {
 
 export function renderMarkdown(
   source: string,
-  options: { baseDir?: string; direction?: Direction } = {}
+  options: { baseDir?: string; direction?: Direction; changedLines?: LineRange[] } = {}
 ): RenderResult {
   const env: RenderEnv = {
     baseDir: options.baseDir ?? '',
     headings: [],
-    sequence: 0
+    sequence: 0,
+    changed: options.changedLines ?? []
   }
 
   const raw = decorateTaskLists(md.render(source, env as unknown as never))

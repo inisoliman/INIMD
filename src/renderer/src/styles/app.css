@@ -44,6 +44,9 @@
   --match: #ffe8a3;
   --match-border: #e0b74a;
   --match-active: #ffd166;
+
+  --change-bg: #e6f5ec;
+  --change-edge: #2f9e63;
 }
 
 [data-theme='dark'] {
@@ -91,6 +94,9 @@
   --match: #6a5320;
   --match-border: #a8873a;
   --match-active: #8a6b25;
+
+  --change-bg: rgba(69, 200, 164, 0.14);
+  --change-edge: #45c8a4;
 }
 
 * {
@@ -488,6 +494,8 @@ button {
 .toc-item.active {
   background: var(--accent-soft);
   color: var(--accent);
+  font-weight: 700;
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 .toc-item.level-1 {
   font-weight: 700;
@@ -1250,6 +1258,21 @@ html[dir='ltr'] .switch.on .knob {
   font-size: 12.5px;
 }
 .update-banner span {
+  flex: 1;
+  min-width: 0;
+}
+
+.change-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: var(--change-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 12.5px;
+}
+.change-banner span {
   flex: 1;
   min-width: 0;
 }
