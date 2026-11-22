@@ -125,9 +125,13 @@ try {
     return (await window.api.getSettings()).language
   })
 
-  // إعادة تحميل الملف بعد تعديله خارجياً
+  // إعادة تحميل الملف بعد تعديله خارجياً (موضعان متباعدان = أكثر من بلوك متغيّر)
   const before = await page.locator('.md-body h1').first().innerText()
-  writeFileSync(working, `${readFileSync(working, 'utf8')}\n## تعديل خارجي للاختبار\n`)
+  const originalLines = readFileSync(working, 'utf8').split(/\r?\n/)
+  writeFileSync(
+    working,
+    `${originalLines.slice(0, 2).join('\n')}\n\n## تعديل خارجي في الأعلى\n\n${originalLines.slice(2).join('\n')}\n\n## تعديل خارجي للاختبار\n`
+  )
   let externalReload = false
   for (let attempt = 0; attempt < 40 && !externalReload; attempt += 1) {
     await sleep(300)
@@ -137,6 +141,29 @@ try {
   report.firstHeading = before
   report.changeHighlight = await page.locator('.md-body .md-changed').count()
   report.changeBanner = await page.locator('.change-banner').isVisible()
+
+  // زر «قراءة التغييرات» والتنقل بين المواضع + F7
+  const reviewBtn = page.locator('.change-review-btn')
+  report.reviewButton = await reviewBtn.isVisible()
+  await reviewBtn.click()
+  await sleep(400)
+  report.reviewBarVisible = await page.locator('.change-banner.reviewing').isVisible()
+  report.reviewPosition = await page.locator('.change-review-text').innerText()
+  report.reviewPrevDisabled = await page.locator('.change-nav').first().isDisabled()
+  report.reviewTargetVisible = await page.locator('.md-body .md-change-target').count()
+  report.reviewNextEnabled = !(await page.locator('.change-nav').nth(1).isDisabled())
+  await page.locator('.change-nav').nth(1).click()
+  await sleep(600)
+  report.reviewPositionAfterNext = await page.locator('.change-review-text').innerText()
+  report.reviewScrolledDown =
+    (await page.locator('.preview-scroll').evaluate((node) => node.scrollTop)) > 0
+  await page.keyboard.press('Shift+F7')
+  await sleep(600)
+  report.reviewPositionAfterShiftF7 = await page.locator('.change-review-text').innerText()
+  await page.keyboard.press('Escape')
+  await sleep(400)
+  report.reviewClosedByEscape = (await page.locator('.change-banner.reviewing').count()) === 0
+  report.reviewTargetsCleared = (await page.locator('.md-body .md-change-target').count()) === 0
 
   // فهرس المحتويات: البند النشط يتبع التمرير
   await page.locator('.preview-scroll').evaluate((node) => {

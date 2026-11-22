@@ -191,9 +191,25 @@ button {
 /* ---------------------------------------------------------------- */
 .app {
   height: 100vh;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
+}
+
+/* الشرائط العلوية (تحديث/تغييرات خارجية) لا تتقلّص ولا تدفع المحتوى. */
+.app > .update-banner,
+.app > .change-banner {
+  flex: none;
+}
+
+/* منطقة العمل تأخذ ما تبقّى مهما ظهر من شرائط. */
+.app > .main {
+  flex: 1;
+  min-height: 0;
+}
+
+.app > .statusbar {
+  flex: none;
 }
 
 /* ---------------------------------------------------------------- */
@@ -1275,6 +1291,43 @@ html[dir='ltr'] .switch.on .knob {
 .change-banner span {
   flex: 1;
   min-width: 0;
+}
+.change-banner.reviewing {
+  background: var(--accent-soft);
+  box-shadow: inset 0 -2px 0 var(--change-edge);
+}
+.change-banner.reviewing .change-review-text {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--change-edge);
+}
+.change-banner.reviewing .change-review-topic {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.change-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+}
+.change-nav:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+/* السهمان يشيران إلى أعلى/أسفل الموضع المستهدف في المستند */
+.change-nav-icon.up {
+  transform: rotate(180deg);
+}
+.change-nav-icon.down {
+  transform: none;
 }
 .primary-btn.small,
 .ghost-btn.small {

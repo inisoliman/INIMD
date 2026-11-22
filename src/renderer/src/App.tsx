@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { openSearchPanel } from '@codemirror/search'
-import type { EditorView } from '@codemirror/view'
+import { EditorView } from '@codemirror/view'
 import {
   DEFAULT_SETTINGS,
   type Direction,
@@ -45,6 +45,13 @@ interface DialogState {
   buttons: DialogButton[]
 }
 
+/** جلسة «قراءة التغييرات»: مرتبطة بتبويب وبنسخة تغيير محدّدة (at). */
+interface ReviewState {
+  tabId: string
+  at: number
+  index: number
+}
+
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 
 /** مدة بقاء تظليل التغييرات الخارجية: ساعة واحدة. */
@@ -82,6 +89,7 @@ export default function App(): React.ReactElement {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loaded, setLoaded] = useState(false)
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
+  const [review, setReview] = useState<ReviewState | null>(null)
   const tabsRef = useRef<Tab[]>([])
   const activeIdRef = useRef<string | null>(null)
   const settingsRef = useRef<Settings>(DEFAULT_SETTINGS)
@@ -93,6 +101,8 @@ export default function App(): React.ReactElement {
   const toastTimers = useRef<number[]>([])
   const editorWidthRef = useRef(50)
   const watchedRef = useRef<Set<string>>(new Set())
+  /** يمنع تمرير المحرر من سحب المعاينة أثناء قفزة تنقّل دقيقة. */
+  const syncGuardRef = useRef(0)
 
   const t = useMemo(() => createTranslator(settings.language), [settings.language])
   const tRef = useRef(t)
@@ -812,6 +822,131 @@ export default function App(): React.ReactElement {
   )
 
   /* -------------------------------------------------------------- */
+  /* Reviewing external changes (prev / next navigation)            */
+  /* -------------------------------------------------------------- */
+  // كل موضع تنقّل = بلوك ظاهر في المعاينة؛ القيمة = فهرس نطاق التغيير المقابل.
+  const reviewTargets = changeRanges ? rendered.changedBlockRanges : []
+  const reviewCount = reviewTargets.length
+  const reviewTargetsRef = useRef<number[]>([])
+  reviewTargetsRef.current = reviewTargets
+  const reviewAt = activeTab?.changes?.at ?? 0
+  const reviewActive = Boolean(
+    review &&
+      activeTab &&
+      review.tabId === activeTab.id &&
+      review.at === reviewAt &&
+      reviewCount > 0
+  )
+
+  /** يبرز الموضع رقم `position` في المعاينة والمحرر معاً. */
+  const showChangeAt = useCallback((position: number) => {
+    const rangeIndex = reviewTargetsRef.current[position]
+    if (rangeIndex === undefined) return
+    const tab = tabsRef.current.find((item) => item.id === activeIdRef.current)
+    const range = tab?.changes?.ranges[rangeIndex]
+    if (!range) return
+
+    // لا نترك تمرير المحرر يسحب المعاينة أثناء قفزة تنقّل دقيقة.
+    syncGuardRef.current = Date.now() + 700
+
+    const mode = layoutRef.current
+    const container = mode === 'editor' ? null : previewRef.current
+    if (container) {
+      // المرساة في DOM تحمل رقم الموضع (0..N-1) لا رقم النطاق.
+      const block = container.querySelector<HTMLElement>(`[data-change-index="${position}"]`)
+      if (block) {
+        container.querySelectorAll('.md-change-target').forEach((node) => {
+          node.classList.remove('md-change-target')
+        })
+        block.classList.add('md-change-target')
+        window.setTimeout(() => block.classList.remove('md-change-target'), 1600)
+        block.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+
+    const view = mode === 'preview' ? null : editorViewRef.current
+    if (view) {
+      const lineNumber = Math.min(Math.max(range.start + 1, 1), view.state.doc.lines)
+      const line = view.state.doc.line(lineNumber)
+      view.dispatch({
+        selection: { anchor: line.from },
+        effects: EditorView.scrollIntoView(line.from, { y: 'center' })
+      })
+    }
+  }, [])
+
+  const startReview = useCallback(() => {
+    const id = activeIdRef.current
+    const tab = tabsRef.current.find((item) => item.id === id)
+    if (!id || !tab?.changes) return
+    if (!reviewTargetsRef.current.length) {
+      notify(tRef.current('change.noVisible'), 'info')
+      return
+    }
+    setReview({ tabId: id, at: tab.changes.at, index: 0 })
+  }, [notify])
+
+  const stepReview = useCallback(
+    (delta: number) => {
+      const total = reviewTargetsRef.current.length
+      if (!total) return
+      const id = activeIdRef.current
+      const tab = tabsRef.current.find((item) => item.id === id)
+      if (!id || !tab?.changes) return
+      const at = tab.changes.at
+      setReview((previous) => {
+        const base = previous && previous.tabId === id && previous.at === at ? previous.index : -1
+        const next = Math.min(Math.max(base + delta, 0), total - 1)
+        return { tabId: id, at, index: next }
+      })
+    },
+    []
+  )
+
+  const endReview = useCallback(() => {
+    setReview(null)
+    previewRef.current
+      ?.querySelectorAll('.md-change-target')
+      .forEach((node) => node.classList.remove('md-change-target'))
+  }, [])
+
+  // التمرير إلى الموضع المطلوب بعد أن يصبح التغيير النشط جزءاً من الحالة.
+  useEffect(() => {
+    if (!reviewActive || !review) return
+    showChangeAt(review.index)
+  }, [reviewActive, review?.index, review?.at, review?.tabId, showChangeAt])
+
+  // إغلاق المراجعة عند تبديل التبويب أو انتهاء التظليل أو تعديل المستخدم.
+  useEffect(() => {
+    if (!review) return
+    const tab = tabs.find((item) => item.id === review.tabId)
+    if (!tab || tab.id !== activeId || !tab.changes || tab.changes.at !== review.at) {
+      setReview(null)
+    }
+  }, [review, tabs, activeId])
+
+  // F7 / Shift+F7 للتنقل، وEscape لإنهاء المراجعة.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented) return
+      if (event.key === 'Escape' && review) {
+        event.preventDefault()
+        endReview()
+        return
+      }
+      if (event.key !== 'F7') return
+      const tab = tabsRef.current.find((item) => item.id === activeIdRef.current)
+      if (!tab?.changes) return
+      if (document.querySelector('.modal-backdrop')) return
+      event.preventDefault()
+      if (!reviewActive) startReview()
+      else stepReview(event.shiftKey ? -1 : 1)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [review, reviewActive, startReview, stepReview, endReview])
+
+  /* -------------------------------------------------------------- */
   /* Active heading in the table of contents (scroll spy)           */
   /* -------------------------------------------------------------- */
   useEffect(() => {
@@ -919,19 +1054,60 @@ export default function App(): React.ReactElement {
         ) : null}
 
         {activeTab?.changes?.ranges.length ? (
-          <div className="change-banner">
+          <div className={`change-banner${reviewActive ? ' reviewing' : ''}`}>
             <Icon name="sparkle" size={15} />
-            <span>{t('change.banner')}</span>
-            <button
-              className="ghost-btn small"
-              onClick={() =>
-                setTabs((prev) =>
-                  prev.map((tab) => (tab.id === activeTab.id ? { ...tab, changes: null } : tab))
-                )
-              }
-            >
-              {t('change.hide')}
-            </button>
+            {reviewActive ? (
+              <>
+                <span className="change-review-text">
+                  {t('change.position', { index: (review?.index ?? 0) + 1, count: reviewCount })}
+                </span>
+                <button
+                  className="ghost-btn small change-nav"
+                  title={t('change.prev')}
+                  aria-label={t('change.prev')}
+                  disabled={(review?.index ?? 0) <= 0}
+                  onClick={() => stepReview(-1)}
+                >
+                  <Icon name="chevron" size={15} className="change-nav-icon up" />
+                </button>
+                <button
+                  className="ghost-btn small change-nav"
+                  title={t('change.next')}
+                  aria-label={t('change.next')}
+                  disabled={(review?.index ?? 0) >= reviewCount - 1}
+                  onClick={() => stepReview(1)}
+                >
+                  <Icon name="chevron" size={15} className="change-nav-icon down" />
+                </button>
+                <span className="change-review-topic">{t('change.reviewTitle')}</span>
+                <button className="ghost-btn small" onClick={endReview}>
+                  {t('change.exit')}
+                </button>
+              </>
+            ) : (
+              <>
+                <span>{t('change.banner')}</span>
+                {reviewCount > 0 ? (
+                  <button
+                    className="primary-btn small change-review-btn"
+                    title={t('change.reviewTitle')}
+                    onClick={startReview}
+                  >
+                    {t('change.review', { count: reviewCount })}
+                  </button>
+                ) : null}
+                <button
+                  className="ghost-btn small"
+                  onClick={() =>
+                    setTabs((prev) =>
+                      prev.map((tab) => (tab.id === activeTab.id ? { ...tab, changes: null } : tab))
+                    )
+                  }
+                >
+                  {t('change.hide')}
+                </button>
+              </>
+            )}
           </div>
         ) : null}
 
@@ -974,6 +1150,7 @@ export default function App(): React.ReactElement {
                       onScrollRatio={(ratio) => {
                         const container = previewRef.current
                         if (!container) return
+                        if (Date.now() < syncGuardRef.current) return
                         const max = container.scrollHeight - container.clientHeight
                         container.scrollTop = ratio * max
                       }}

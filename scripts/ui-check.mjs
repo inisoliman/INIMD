@@ -149,8 +149,16 @@ report.dirtyAfterSave = (await win.locator('.tab-dot.on').count()) > 0
 log('save done')
 
 // external change from another program -> automatic reload
+// نُعدّل موضعين متباعدين حتى يكون هناك أكثر من بلوك متغيّر لاختبار التنقل.
 log('external change')
-appendFileSync(working, '\n\nسطر أضافه محرر آخر — external edit marker.\n')
+const beforeExternal = readFileSync(working, 'utf8')
+const externalLines = beforeExternal.split(/\r?\n/)
+const firstPart = externalLines.slice(0, 2).join('\n')
+const restPart = externalLines.slice(2).join('\n')
+writeFileSync(
+  working,
+  `${firstPart}\n\nفقرة أضافها محرر آخر في أول الملف — external edit marker.\n\n${restPart}\n\nسطر أضافه محرر آخر في آخر الملف — second edit marker.\n`
+)
 let externalReload = false
 for (let i = 0; i < 24; i += 1) {
   await win.waitForTimeout(250)
@@ -165,6 +173,70 @@ report.externalDialog = await win.locator('.modal').count()
 report.changeHighlight = await win.locator('.md-body .md-changed').count()
 report.changeBanner = await win.locator('.change-banner').isVisible()
 report.editorChangedLines = await win.locator('.cm-changed-line').count()
+
+// زر «قراءة التغييرات» + سهمَي التنقل
+const reviewBtn = win.locator('.change-review-btn')
+report.reviewButton = await reviewBtn.isVisible()
+report.reviewCount = (await reviewBtn.innerText()).trim()
+await reviewBtn.click()
+await win.waitForTimeout(500)
+report.reviewBarVisible = await win.locator('.change-banner.reviewing').isVisible()
+report.reviewPosition = (await win.locator('.change-review-text').innerText()).trim()
+report.reviewPrevDisabled = await win.locator('.change-nav').first().isDisabled()
+report.reviewTargetVisible = await win.locator('.md-body .md-change-target').count()
+report.reviewNextEnabled = !(await win.locator('.change-nav').nth(1).isDisabled())
+await win.locator('.change-nav').nth(1).click()
+await win.waitForTimeout(700)
+report.reviewPositionAfterNext = (await win.locator('.change-review-text').innerText()).trim()
+report.reviewPrevEnabled = !(await win.locator('.change-nav').first().isDisabled())
+report.reviewNextDisabledAtEnd = await win.locator('.change-nav').nth(1).isDisabled()
+report.reviewScrolledDown = (await win.locator('.preview-scroll').evaluate((node) => node.scrollTop)) > 0
+await win.screenshot({ path: join(docs, 'screenshot-review.png') })
+await win.locator('.change-nav').first().click()
+await win.waitForTimeout(700)
+report.reviewPositionAfterPrev = (await win.locator('.change-review-text').innerText()).trim()
+// F7 يتقدّم وShift+F7 يرجع
+await win.keyboard.press('F7')
+await win.waitForTimeout(600)
+report.reviewPositionAfterF7 = (await win.locator('.change-review-text').innerText()).trim()
+await win.keyboard.press('Shift+F7')
+await win.waitForTimeout(600)
+report.reviewPositionAfterShiftF7 = (await win.locator('.change-review-text').innerText()).trim()
+await win.keyboard.press('Escape')
+await win.waitForTimeout(400)
+report.reviewClosedByEscape = (await win.locator('.change-banner.reviewing').count()) === 0
+report.reviewTargetsCleared = (await win.locator('.md-body .md-change-target').count()) === 0
+// إعادة الدخول ثم الإنهاء بالزر
+await win.locator('.change-review-btn').click()
+await win.waitForTimeout(500)
+await win.locator('.change-banner.reviewing .ghost-btn').last().click()
+await win.waitForTimeout(400)
+report.reviewClosed = (await win.locator('.change-banner.reviewing').count()) === 0
+
+// وضع المعاينة فقط: التنقل يبرز البلوك دون محرر ظاهر
+await win.locator('.toolbar .segmented button').nth(2).click()
+await win.waitForTimeout(400)
+await win.locator('.change-review-btn').click()
+await win.waitForTimeout(500)
+await win.locator('.change-nav').nth(1).click()
+await win.waitForTimeout(700)
+report.reviewPreviewOnlyTarget = await win.locator('.md-body .md-change-target').count()
+report.reviewPreviewOnlyPosition = (await win.locator('.change-review-text').innerText()).trim()
+await win.locator('.toolbar .segmented button').nth(1).click()
+await win.waitForTimeout(400)
+await win.keyboard.press('Escape')
+await win.waitForTimeout(300)
+
+// الكتابة في المحرر تُلغي التظليل والمراجعة معاً
+await win.locator('.change-review-btn').click()
+await win.waitForTimeout(300)
+await win.locator('.cm-content').click()
+await win.keyboard.press('Control+End')
+await win.keyboard.type(' ')
+await win.waitForTimeout(600)
+report.reviewClosedAfterTyping = (await win.locator('.change-banner').count()) === 0
+await win.keyboard.press('Control+z')
+await win.waitForTimeout(400)
 log('external change done')
 
 // فهرس المحتويات: البند النشط يتبع التمرير

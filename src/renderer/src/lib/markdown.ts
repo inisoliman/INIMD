@@ -17,6 +17,12 @@ export interface RenderResult {
   html: string
   headings: Heading[]
   readingMinutes: number
+  /**
+   * فهارس نطاقات التغيير التي لها بلوك ظاهر (أعلى مستوى) في المعاينة،
+   * بترتيب المستند. كل عنصر = موضع واحد يتنقّل إليه زر «قراءة التغييرات»،
+   * وهو نفسه قيمة `data-change-index` على العنصر الأعلى للبلوك.
+   */
+  changedBlockRanges: number[]
 }
 
 interface RenderEnv {
@@ -24,17 +30,21 @@ interface RenderEnv {
   headings: Heading[]
   sequence: number
   changed: LineRange[]
+  changedBlockRanges: number[]
   [key: string]: unknown
 }
 
-/** هل يقع هذا البلوك داخل نطاق أسطر تغيّرت مؤخراً؟ */
-const isChangedBlock = (env: unknown, token: { map: [number, number] | null }): boolean => {
-  const ranges = envOf(env).changed
-  if (!ranges || !ranges.length || !token.map) return false
-  return intersects(ranges, token.map[0], token.map[1])
-}
-
 const envOf = (env: unknown): RenderEnv => env as RenderEnv
+
+/** رقم أول نطاق تغيير يتقاطع مع البلوك، أو -1 إن لم يتغيّر. */
+const changeIndexOf = (env: unknown, token: { map: [number, number] | null }): number => {
+  const ranges = envOf(env).changed
+  if (!ranges || !ranges.length || !token.map) return -1
+  for (let index = 0; index < ranges.length; index += 1) {
+    if (intersects([ranges[index]], token.map[0], token.map[1])) return index
+  }
+  return -1
+}
 
 const escapeHtml = (value: string): string =>
   value
@@ -55,7 +65,7 @@ const md = new MarkdownIt({
 md.renderer.rules.fence = (tokens, idx, options, env) => {
   const token = tokens[idx]
   const info = token.info.trim().split(/\s+/)[0] || ''
-  const changed = isChangedBlock(env, token)
+  const position = token.attrGet('data-change-index')
   let body: string
   if (info && hljs.getLanguage(info)) {
     try {
@@ -66,7 +76,11 @@ md.renderer.rules.fence = (tokens, idx, options, env) => {
   } else {
     body = escapeHtml(token.content)
   }
-  return `<pre class="hljs${changed ? ' md-changed' : ''}" dir="ltr"><code>${body}</code></pre>\n`
+  const attrs =
+    position === null
+      ? ' class="hljs"'
+      : ` class="hljs md-changed" data-change-index="${position}"`
+  return `<pre${attrs} dir="ltr"><code>${body}</code></pre>\n`
 }
 
 md.renderer.rules.image = (tokens, idx, options, env, self) => {
@@ -96,8 +110,12 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
 }
 
 md.renderer.rules.table_open = (tokens, idx, options, env) => {
-  const changed = isChangedBlock(env, tokens[idx])
-  return `<div class="table-wrap${changed ? ' md-changed' : ''}"><table>\n`
+  const position = tokens[idx].attrGet('data-change-index')
+  const attrs =
+    position === null
+      ? ' class="table-wrap"'
+      : ` class="table-wrap md-changed" data-change-index="${position}"`
+  return `<div${attrs}><table>\n`
 }
 md.renderer.rules.table_close = () => '</table></div>\n'
 
@@ -122,15 +140,30 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   return self.renderToken(tokens, idx, options)
 }
 
-// يضيف صنف `md-changed` إلى كل بلوك Markdown يتقاطع مع أسطر تغيّرت خارجياً.
+/**
+ * يعلّم كل جزء Markdown يتقاطع مع أسطر تغيّرت خارجياً.
+ *
+ * - الصنف `md-changed` يُضاف لكل جزء متغيّر (كما في السابق) ليظهر التظليل
+ *   نفسه داخل القوائم والجداول والاقتباسات.
+ * - الوسم `data-change-index` يُضاف **لعنصر البلوك الأعلى فقط**، لأن التنقل
+ *   يحتاج مرساة واحدة لا تتكرر داخل الجدول أو القائمة. القيمة = رقم النطاق
+ *   الأصلي، ولا يتكرر الرقم مرتين، فيصبح العدّاد مطابقاً للمواضع القابلة للزيارة.
+ */
 md.core.ruler.push('inimd_changed_blocks', (state) => {
-  const ranges = envOf(state.env).changed
-  if (!ranges || !ranges.length) return
+  const ctx = envOf(state.env)
+  if (!ctx.changed.length) return
   for (const token of state.tokens) {
     if (!token.map) continue
-    // fence وtable_open لهما قواعد عرض مخصّصة تتعامل مع الصنف بنفسها.
-    if (token.type === 'fence' || token.type === 'table_open') continue
-    if (intersects(ranges, token.map[0], token.map[1])) token.attrJoin('class', 'md-changed')
+    const rangeIndex = changeIndexOf(state.env, token)
+    if (rangeIndex < 0) continue
+    token.attrJoin('class', 'md-changed')
+    // مستوى 0 = بلوك أعلى (فقرة، عنوان، جدول، قائمة، كتلة كود، اقتباس...).
+    if (token.level !== 0) continue
+    if (token.attrGet('data-change-index') !== null) continue
+    // النطاق الواحد قد يغطي بلوكات متجاورة؛ نربطه بأولها كي لا يتكرر العدّ.
+    if (ctx.changedBlockRanges.includes(rangeIndex)) continue
+    token.attrSet('data-change-index', String(ctx.changedBlockRanges.length))
+    ctx.changedBlockRanges.push(rangeIndex)
   }
 })
 
@@ -149,12 +182,13 @@ export function renderMarkdown(
     baseDir: options.baseDir ?? '',
     headings: [],
     sequence: 0,
-    changed: options.changedLines ?? []
+    changed: options.changedLines ?? [],
+    changedBlockRanges: []
   }
 
   const raw = decorateTaskLists(md.render(source, env as unknown as never))
   const html = DOMPurify.sanitize(raw, {
-    ADD_ATTR: ['target', 'data-path', 'id', 'dir', 'loading'],
+    ADD_ATTR: ['target', 'data-path', 'data-change-index', 'id', 'dir', 'loading'],
     ALLOWED_URI_REGEXP:
       /^(?:(?:https?|mailto|tel|inimd|file):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
@@ -165,6 +199,7 @@ export function renderMarkdown(
   return {
     html,
     headings: env.headings,
-    readingMinutes: Math.max(1, Math.round(words / 180))
+    readingMinutes: Math.max(1, Math.round(words / 180)),
+    changedBlockRanges: env.changedBlockRanges
   }
 }

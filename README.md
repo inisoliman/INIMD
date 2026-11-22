@@ -12,15 +12,15 @@
 
 **النسخة الكاملة (Electron — موصى بها):**
 
-- `INIMD-Setup-1.2.0.exe` — مثبّت NSIS (**109.8 MB**، للمستخدم الحالي، بدون صلاحيات مدير).
-- `INIMD-Portable-1.2.0.exe` — نسخة محمولة (**99.5 MB**) لا تحتاج تركيب.
+- `INIMD-Setup-1.3.0.exe` — مثبّت NSIS (**109.8 MB**، للمستخدم الحالي، بدون صلاحيات مدير).
+- `INIMD-Portable-1.3.0.exe` — نسخة محمولة (**99.5 MB**) لا تحتاج تركيب.
 
 **النسخة الخفيفة (INIMD Lite — للإنترنت الضعيف والأجهزة القديمة):**
 
-- [`INIMD.Lite_1.1.0_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.1.0/INIMD.Lite_1.1.0_x64-setup.exe) — مثبّت (**3.53 MB**)، يسجّل ربط `.md` ويضع اختصاراً في قائمة ابدأ.
-- [`INIMD-Lite-1.1.0-portable.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.1.0/INIMD-Lite-1.1.0-portable.exe) — **نسخة محمولة (3.52 MB)**: ملف واحد فقط، لا تحتاج تثبيت ولا صلاحيات مدير.
+- [`INIMD.Lite_1.2.0_x64-setup.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.2.0/INIMD.Lite_1.2.0_x64-setup.exe) — مثبّت (**3.53 MB**)، يسجّل ربط `.md` ويضع اختصاراً في قائمة ابدأ.
+- [`INIMD-Lite-1.2.0-portable.exe`](https://github.com/inisoliman/INIMD/releases/download/lite-v1.2.0/INIMD-Lite-1.2.0-portable.exe) — **نسخة محمولة (3.52 MB)**: ملف واحد فقط، لا تحتاج تثبيت ولا صلاحيات مدير.
 
-كلاهما منشور كإصدار تجريبي بوسم `lite-v1.1.0`، ويضم نفس مزايا الإصدار 1.2.0 من حيث تظليل التغييرات الخارجية والنسخ من المعاينة وتحديد بند الفهرس النشط.
+كلاهما منشور كإصدار تجريبي بوسم `lite-v1.2.0`، ويضم نفس مزايا الإصدار 1.3.0 بما فيها **مراجعة التغييرات الخارجية** (زر «قراءة التغييرات» وأسهم التنقل و`F7`/`Shift+F7`) والنسخ من المعاينة وتحديد بند الفهرس النشط.
 
 ## المزايا
 
@@ -35,6 +35,7 @@
 - **تحديث تلقائي من GitHub**: يفحص البرنامج الإصدارات الجديدة عند الإقلاع (قابل للتعطيل)، ويُظهر شريط إشعار عند توفّر تحديث مع زر تنزيل وتثبيت وإعادة تشغيل.
 - **متابعة الملف على القرص**: إذا عُدّل الملف المحفوظ من محرر آخر يُعيد INIMD تحميله تلقائياً، وإن كانت لديك تغييرات غير محفوظة يسألك قبل الاستبدال.
 - **تظليل التغييرات الخارجية**: بعد التحميل التلقائي يُظلَّل ما أُضيف أو تغيّر بلون خفيف في المحرر والمعاينة (شريط جانبي أخضر)، ويختفي تلقائياً بعد **ساعة** أو عند تعديلك أنت، مع زر «إخفاء التظليل».
+- **قراءة التغييرات خطوة بخطوة**: زر **«قراءة التغييرات (N)»** يحوّل شريط التغييرات إلى شريط تنقل: أسهم **السابق/التالي** وعدّاد `i من N` تنتقل بين كل ما أضافه أو عدّله المحرر الآخر، فتقفز المعاينة إلى البلوك المقصود وتومض إطاره وتضع مؤشر المحرر على السطر نفسه. اختصارات **`F7`** و**`Shift + F7`** تعمل دون فتح الشريط، و**`Esc`** ينهي المراجعة. لا يدور التنقل (الأزرار تتعطّل عند الطرفين)، ويغلق تلقائياً عند الكتابة أو تبديل التبويب.
 - **نسخ من المعاينة**: ظلّل أي نص ثم انقر بالزر الأيمن لتحصل على قائمة **نسخ** و**نسخ كل المحتوى** و**نسخ الرابط** و**تحديد الكل** — تعمل في النسختين الكاملة والخفيفة.
 - **فهرس محتويات تفاعلي**: البند النشط يتظلّل أثناء التمرير في الملف، ويُبقى ظاهراً داخل الفهرس تلقائياً، فتعرف موقعك في الملفات الطويلة.
 - **حفظ تلقائي** اختياري، وتنبيه التغييرات غير المحفوظة قبل الإغلاق.
@@ -44,7 +45,7 @@
 
 ## النسخة الخفيفة: INIMD Lite
 
-نسخة ثانية من البرنامج مبنية على **Tauri 2 + WebView2** بواجهة React نفسها، موجهة لمن لديه **إنترنت ضعيف** أو قرص صغير أو جهاز قديم. المثبّت أصغر بـ **31 مرة** من النسخة الكاملة. صدرت كإصدار تجريبي بوسم `lite-v1.1.0` ولا تؤثر إطلاقاً على النسخة الكاملة المنشورة.
+نسخة ثانية من البرنامج مبنية على **Tauri 2 + WebView2** بواجهة React نفسها، موجهة لمن لديه **إنترنت ضعيف** أو قرص صغير أو جهاز قديم. المثبّت أصغر بـ **31 مرة** من النسخة الكاملة. صدرت كإصدار تجريبي بوسم `lite-v1.2.0` ولا تؤثر إطلاقاً على النسخة الكاملة المنشورة.
 
 | المقارنة | INIMD (Electron) | INIMD Lite (Tauri) |
 | --- | --- | --- |
@@ -140,12 +141,12 @@ npm run lite:portable          # نسخة محمولة: ملف تنفيذي وا
 npm run check:lite             # اختبار دخاني آلي على النسخة المبنية
 ```
 
-تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`، والنسخة المحمولة في `release/INIMD-Lite-1.1.0-portable.exe`.
+تجد مخرجات Lite في `lite/src-tauri/target/release/bundle/nsis/`، والنسخة المحمولة في `release/INIMD-Lite-1.2.0-portable.exe`.
 
 تجد مخرجات Electron في مجلد `release/`:
 
-- `INIMD-Setup-1.2.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
-- `INIMD-Portable-1.2.0.exe` — نسخة محمولة.
+- `INIMD-Setup-1.3.0.exe` — مثبّت عادي يسجّل ربط ملفات `.md`.
+- `INIMD-Portable-1.3.0.exe` — نسخة محمولة.
 - `latest.yml` — بيانات التحديث التي يقرأها `electron-updater`.
 
 > **ربط ملفات `.md`:** يسجّل المثبّت INIMD كبرنامج لفتح ملفات Markdown، لكن ويندوز 10/11 قد يحتفظ بالبرنامج الافتراضي السابق. لتثبيته افتراضياً: انقر بالزر الأيمن على أي ملف `.md` ← **فتح باستخدام** ← **اختيار تطبيق آخر** ← اختر **INIMD** ← **دائماً**.
@@ -222,7 +223,7 @@ scripts/           توليد الأيقونات والاختبارات الآل
 المستودع خاص (private) باسم `INIMD` على حساب `inisoliman`:
 <https://github.com/inisoliman/INIMD>
 
-الإصدار `v1.2.0` هو الإصدار الحالي للنسخة الكاملة، ويضم المثبّت والنسخة المحمولة و`latest.yml` لأجل التحديث التلقائي. إصدارات النسخة الخفيفة تُنشر منفصلة بوسم `lite-v*` وكـ **prerelease** حتى لا تزاحم `latest` الذي يقرأه `electron-updater`. لتحديث النسخة من جهاز آخر:
+الإصدار `v1.3.0` هو الإصدار الحالي للنسخة الكاملة، ويضم المثبّت والنسخة المحمولة و`latest.yml` لأجل التحديث التلقائي. إصدارات النسخة الخفيفة تُنشر منفصلة بوسم `lite-v*` وكـ **prerelease** حتى لا تزاحم `latest` الذي يقرأه `electron-updater`. لتحديث النسخة من جهاز آخر:
 
 ```bash
 gh auth login
@@ -233,26 +234,26 @@ git push origin main
 
 ```bash
 # 1) مسودة فارغة (لا تُنشَر حتى تنتهي كل الأصول)
-gh release create v1.2.0 --draft --title "INIMD 1.2.0" --notes "ملاحظات الإصدار."
+gh release create v1.3.0 --draft --title "INIMD 1.3.0" --notes "ملاحظات الإصدار."
 
 # 2) الرفع منفصلًا مع إعادة المحاولة عند انقطاع الاتصال
-gh release upload v1.2.0 "release/latest.yml" "release/INIMD-Setup-1.2.0.exe.blockmap" --clobber
-gh release upload v1.2.0 "release/INIMD-Setup-1.2.0.exe" --clobber
-gh release upload v1.2.0 "release/INIMD-Portable-1.2.0.exe" --clobber
+gh release upload v1.3.0 "release/latest.yml" "release/INIMD-Setup-1.3.0.exe.blockmap" --clobber
+gh release upload v1.3.0 "release/INIMD-Setup-1.3.0.exe" --clobber
+gh release upload v1.3.0 "release/INIMD-Portable-1.3.0.exe" --clobber
 
 # 3) النشر كـ Latest بعد التحقق من الأصول
-gh release edit v1.2.0 --draft=false --latest
+gh release edit v1.3.0 --draft=false --latest
 
 # النسخة الخفيفة (prerelease، لا تلمس latest)
 npm run lite:dist && npm run lite:portable
-gh release create lite-v1.1.0 --prerelease --title "INIMD Lite 1.1.0" --notes "نسخة خفيفة تجريبية."
-gh release upload lite-v1.1.0 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.1.0_x64-setup.exe" --clobber
-gh release upload lite-v1.1.0 "release/INIMD-Lite-1.1.0-portable.exe" --clobber
+gh release create lite-v1.2.0 --prerelease --title "INIMD Lite 1.2.0" --notes "نسخة خفيفة تجريبية."
+gh release upload lite-v1.2.0 "lite/src-tauri/target/release/bundle/nsis/INIMD Lite_1.2.0_x64-setup.exe" --clobber
+gh release upload lite-v1.2.0 "release/INIMD-Lite-1.2.0-portable.exe" --clobber
 ```
 
 > إن رفعت كل الملفات في أمر `gh release create` واحد على اتصال بطيء فقد يفشل بـ `HTTP 408: Upload body timed out`. الطريقة أعلاه تتجنّب ذلك.
 
-> يرفع GitHub الأصول ويستبدل المسافات في أسماء الملفات بنقاط، فيصبح الأصل `INIMD.Lite_1.1.0_x64-setup.exe`.
+> يرفع GitHub الأصول ويستبدل المسافات في أسماء الملفات بنقاط، فيصبح الأصل `INIMD.Lite_1.2.0_x64-setup.exe`.
 
 > إن كان المستودع خاصاً، أضف التوكن إلى الإعدادات (أو `INIMD_GH_TOKEN`) كما في قسم **التحديثات** أعلاه.
 

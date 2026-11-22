@@ -109,6 +109,39 @@
   border-radius: 4px;
 }
 
+/* الموضع الذي يتوقف عنده زر «قراءة التغييرات» — نبضة واضحة قصيرة */
+.md-body .md-change-target {
+  animation: md-change-pulse 1.6s ease-out 1;
+  border-radius: 6px;
+  scroll-margin-block: 30vh;
+}
+
+@keyframes md-change-pulse {
+  0% {
+    box-shadow:
+      inset 3px 0 0 var(--change-edge),
+      0 0 0 0 var(--change-edge);
+  }
+  25% {
+    box-shadow:
+      inset 3px 0 0 var(--change-edge),
+      0 0 0 4px var(--change-edge);
+  }
+  100% {
+    box-shadow:
+      inset 3px 0 0 var(--change-edge),
+      0 0 0 10px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-body .md-change-target {
+    animation: none;
+    outline: 2px solid var(--change-edge);
+    outline-offset: 3px;
+  }
+}
+
 .md-body > *:first-child {
   margin-top: 0;
 }
