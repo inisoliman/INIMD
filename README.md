@@ -86,6 +86,12 @@
 | --- | --- |
 | ![التحديثات](docs/screenshot-updates.png) | ![INIMD Lite](docs/screenshot-lite.png) |
 
+### زر «قراءة التغييرات»: أين يظهر؟
+
+يظهر في شريط التظليل أسفل شريط التبويبات مباشرةً، بعد تعديل الملف من محرر آخر:
+
+![زر قراءة التغييرات](docs/screenshot-review.png)
+
 ## نماذج المخرجات
 
 مخرجات حقيقية وُلّدت من [`docs/sample-ar.md`](docs/sample-ar.md):
