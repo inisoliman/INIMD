@@ -19,6 +19,8 @@ const log = (message) => {
 
 log('start')
 copyFileSync(sample, working)
+// نحوّل العيّنة إلى CRLF كما تأتي معظم ملفات ويندوز، لاختبار انحدار «غير محفوظ» عند الفتح.
+writeFileSync(working, readFileSync(working, 'utf8').replace(/\r?\n/g, '\r\n'))
 
 // اجعل بداية الاختبار محددة: عربي + فاتح + بلا حفظ تلقائي
 const settingsFile = join(process.env.APPDATA ?? '', 'INIMD', 'settings.json')
@@ -128,6 +130,20 @@ await win.locator('.toolbar .icon-only').nth(2).click() // dark -> system
 await win.locator('.toolbar .icon-only').nth(2).click() // system -> light
 await win.waitForTimeout(300)
 log('theme done')
+
+// انحدار «غير محفوظ»: العيّنة نهايات أسطرها CRLF. كتابة ثم تراجع تُرجع النص لما على القرص،
+// فيجب ألّا تبقى علامة التعديل. قبل الإصلاح تبقى لأن المحرر يعمل داخلياً بـ LF والملف CRLF.
+log('crlf regression')
+report.crlfDirtyOnOpen = (await win.locator('.tab-dot.on').count()) > 0
+await win.locator('.cm-content').click({ force: true })
+await win.keyboard.press('Control+End')
+await win.keyboard.type('x')
+await win.waitForTimeout(250)
+report.crlfDirtyAfterType = (await win.locator('.tab-dot.on').count()) > 0
+await win.keyboard.press('Control+Z')
+await win.waitForTimeout(450)
+report.crlfDirtyAfterUndo = (await win.locator('.tab-dot.on').count()) > 0
+log('crlf regression done')
 
 // editing
 const editor = win.locator('.cm-content')

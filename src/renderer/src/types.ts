@@ -20,5 +20,10 @@ export interface Tab {
   direction: Direction
   dirLocked: boolean
   savedAt: number | null
+  /** نهاية السطر الأصلية للملف على القرص؛ نعمل داخلياً بـ LF ونعيدها عند الحفظ. */
+  eol: Eol
   changes?: TabChange | null
 }
+
+/** نهاية السطر في الملف الأصلي. */
+export type Eol = '\n' | '\r\n'

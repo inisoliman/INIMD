@@ -29,7 +29,15 @@ import { I18nProvider } from './lib/i18n'
 import { diffLineRanges } from './lib/diff'
 import { renderMarkdown } from './lib/markdown'
 import { baseNameOf, dirnameOf, stripExtension } from './lib/paths'
-import { countLines, countWords, detectDirection, makeId } from './lib/misc'
+import {
+  applyEol,
+  countLines,
+  countWords,
+  detectDirection,
+  detectEol,
+  makeId,
+  normalizeEol
+} from './lib/misc'
 import { buildPrintDocument } from './lib/print'
 import type { Tab } from './types'
 
@@ -68,6 +76,7 @@ function emptyTab(index: number, direction: Direction, t: TFunction): Tab {
     direction,
     dirLocked: false,
     savedAt: null,
+    eol: '\n',
     changes: null
   }
 }
@@ -283,16 +292,20 @@ export default function App(): React.ReactElement {
         settingsRef.current.defaultDirection === 'auto'
           ? detectDirection(file.content)
           : settingsRef.current.defaultDirection
+      // المحرر يعمل داخلياً بـ LF؛ نحفظ نهاية السطر الأصلية لإعادتها عند الحفظ.
+      const eol = detectEol(file.content)
+      const content = normalizeEol(file.content)
       const tab: Tab = {
         id: makeId(),
         path: file.path,
         name: file.name,
-        content: file.content,
-        savedContent: file.content,
+        content,
+        savedContent: content,
         mtimeMs: file.mtimeMs,
         direction,
         dirLocked: settingsRef.current.defaultDirection !== 'auto',
-        savedAt: null
+        savedAt: null,
+        eol
       }
       setTabs((prev) => [...prev, tab])
       setActiveId(tab.id)
@@ -356,7 +369,7 @@ export default function App(): React.ReactElement {
       try {
         if (!tab.path || forceAs) {
           const suggestion = tab.path ? baseNameOf(tab.path) : `${tab.name}`
-          const result = await window.api.saveFileAs(suggestion, tab.content)
+          const result = await window.api.saveFileAs(suggestion, applyEol(tab.content, tab.eol))
           if (!result) return false
           setTabs((prev) =>
             prev.map((item) =>
@@ -375,7 +388,7 @@ export default function App(): React.ReactElement {
           void refreshRecent()
           notify(tRef.current('app.savedAs', { name: baseNameOf(result.path) }), 'success')
         } else {
-          const result = await window.api.saveFile(tab.path, tab.content)
+          const result = await window.api.saveFile(tab.path, applyEol(tab.content, tab.eol))
           setTabs((prev) =>
             prev.map((item) =>
               item.id === id
@@ -468,12 +481,15 @@ export default function App(): React.ReactElement {
     setTabs((prev) =>
       prev.map((item) => {
         if (item.id !== tabId) return item
-        const ranges = diffLineRanges(item.content, file.content)
+        const eol = detectEol(file.content)
+        const content = normalizeEol(file.content)
+        const ranges = diffLineRanges(item.content, content)
         const now = Date.now()
         return {
           ...item,
-          content: file.content,
-          savedContent: file.content,
+          content,
+          savedContent: content,
+          eol,
           mtimeMs: file.mtimeMs,
           changes: ranges.length ? { ranges, expiresAt: now + CHANGE_TTL, at: now } : null
         }
@@ -492,7 +508,7 @@ export default function App(): React.ReactElement {
         const file = await window.api.readFile(change.path)
         const current = tabsRef.current.find((item) => item.id === tab.id)
         if (!current) return
-        if (file.content === current.content) {
+        if (normalizeEol(file.content) === current.content) {
           setTabs((prev) =>
             prev.map((item) => (item.id === current.id ? { ...item, mtimeMs: file.mtimeMs } : item))
           )

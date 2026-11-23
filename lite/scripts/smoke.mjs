@@ -27,6 +27,8 @@ mkdirSync(outDir, { recursive: true })
 // يبقى في docs/ لأن ملفات العيّنة تشير إلى الصور بمسارات نسبية
 const working = join(docs, 'lite-sample-ar.md')
 copyFileSync(join(docs, 'sample-ar.md'), working)
+// نحوّل العيّنة إلى CRLF كما تأتي معظم ملفات ويندوز، لاختبار انحدار «غير محفوظ» عند الفتح.
+writeFileSync(working, readFileSync(working, 'utf8').replace(/\r?\n/g, '\r\n'))
 
 // ابدأ من إعدادات عربية محددة (مجلد إعدادات Tauri: %APPDATA%\com.ini.inimd.lite)
 const settingsDir = join(process.env.APPDATA ?? '', 'com.ini.inimd.lite')
@@ -115,6 +117,9 @@ try {
   })
   report.imageSrc = await page.evaluate(() => document.querySelector('.md-body img')?.getAttribute('src') ?? '')
   report.language = await page.evaluate(() => document.documentElement.lang)
+  // انحدار «غير محفوظ»: العيّنة CRLF، فلا يجب أن يظهر التبويب معدَّلاً بمجرد الفتح.
+  report.crlfDirtyOnOpen = (await page.locator('.tab-dot.on').count()) > 0
+  report.crlfPreserved = readFileSync(working, 'utf8').includes('\r\n')
 
   await page.screenshot({ path: join(docs, 'screenshot-lite.png') })
 

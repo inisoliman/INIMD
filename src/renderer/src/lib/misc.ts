@@ -1,4 +1,5 @@
 import type { Direction } from '@shared/types'
+import type { Eol } from '../types'
 import { translate, type Language } from '@shared/i18n'
 
 const ARABIC_RANGE = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/
@@ -42,6 +43,25 @@ export function countWords(text: string): number {
 
 export function countLines(text: string): number {
   return text.length ? text.split(/\r\n|\r|\n/).length : 0
+}
+
+/**
+ * يكتشف نهاية السطر السائدة في الملف (CRLF أو LF).
+ * المحرر يعمل داخلياً بـ LF، فنعيد للملف شكله الأصلي عند الحفظ.
+ */
+export function detectEol(text: string): Eol {
+  return text.includes('\r\n') ? '\r\n' : '\n'
+}
+
+/** يحوّل نصاً إلى LF فقط (شكل العمل الداخلي للمحرر). */
+export function normalizeEol(text: string): string {
+  return text.replace(/\r\n?/g, '\n')
+}
+
+/** يعيد نص العمل (LF) إلى نهاية السطر المطلوبة عند الحفظ. */
+export function applyEol(text: string, eol: Eol): string {
+  const normalized = normalizeEol(text)
+  return eol === '\n' ? normalized : normalized.replace(/\n/g, '\r\n')
 }
 
 export function formatCount(value: number, language: Language = 'ar'): string {
