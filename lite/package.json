@@ -1,7 +1,7 @@
 {
   "name": "inimd-lite",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "INIMD Lite — نسخة خفيفة من INIMD مبنية على Tauri وWebView2",
   "type": "module",
   "scripts": {

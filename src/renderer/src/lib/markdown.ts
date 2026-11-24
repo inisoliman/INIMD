@@ -152,6 +152,8 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
 md.core.ruler.push('inimd_changed_blocks', (state) => {
   const ctx = envOf(state.env)
   if (!ctx.changed.length) return
+  const unmatched: number[] = []
+  const anchored = new Set<number>()
   for (const token of state.tokens) {
     if (!token.map) continue
     const rangeIndex = changeIndexOf(state.env, token)
@@ -164,6 +166,28 @@ md.core.ruler.push('inimd_changed_blocks', (state) => {
     if (ctx.changedBlockRanges.includes(rangeIndex)) continue
     token.attrSet('data-change-index', String(ctx.changedBlockRanges.length))
     ctx.changedBlockRanges.push(rangeIndex)
+    anchored.add(rangeIndex)
+  }
+
+  // شبكة أمان: نطاق تغيّر في سطر لا ينتمي لأي بلوك (سطر فارغ، HTML خام،
+  // أو حذف عند نهاية المستند) كان يختفي من العدّاد. نربطه بأقرب بلوك حرّ.
+  for (let index = 0; index < ctx.changed.length; index += 1) {
+    if (anchored.has(index)) continue
+    const range = ctx.changed[index]
+    let best: { token: (typeof state.tokens)[number]; distance: number } | null = null
+    for (const token of state.tokens) {
+      if (!token.map || token.level !== 0) continue
+      if (token.attrGet('data-change-index') !== null) continue
+      const start = token.map[0]
+      const end = token.map[1]
+      const distance = range.start < start ? start - range.end : range.start - end
+      if (!best || distance < best.distance) best = { token, distance }
+    }
+    if (!best) continue
+    best.token.attrJoin('class', 'md-changed')
+    best.token.attrSet('data-change-index', String(ctx.changedBlockRanges.length))
+    ctx.changedBlockRanges.push(index)
+    anchored.add(index)
   }
 })
 

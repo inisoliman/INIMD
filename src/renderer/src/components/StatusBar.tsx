@@ -9,9 +9,17 @@ interface StatusBarProps {
   lines: number
   autosave: boolean
   onShowInFolder: (path: string) => void
+  onReload: () => void
 }
 
-export function StatusBar({ tab, words, lines, autosave, onShowInFolder }: StatusBarProps): React.ReactElement {
+export function StatusBar({
+  tab,
+  words,
+  lines,
+  autosave,
+  onShowInFolder,
+  onReload
+}: StatusBarProps): React.ReactElement {
   const { t, language } = useI18n()
   const dirty = tab ? tab.content !== tab.savedContent : false
   const state = dirty
@@ -40,6 +48,16 @@ export function StatusBar({ tab, words, lines, autosave, onShowInFolder }: Statu
       </div>
 
       <div className="status-right">
+        {tab?.path ? (
+          <button
+            className="status-chip status-reload"
+            onClick={onReload}
+            title={t('status.reload')}
+            aria-label={t('status.reload')}
+          >
+            <Icon name="reload" size={13} />
+          </button>
+        ) : null}
         {tab?.path ? (
           <button
             className="path-btn"

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, Menu, ipcMain, net, protocol, shell } from 'electron'
 import { watch as watchFs, type FSWatcher } from 'fs'
-import { promises as fs } from 'fs'
-import { dirname, extname, join, resolve } from 'path'
+import { promises as fs, statSync } from 'fs'
+import { basename, dirname, extname, join, resolve } from 'path'
 import { pathToFileURL } from 'url'
 import type { ExportDocxPayload, ExportPdfPayload, MenuAction, Settings } from '../shared/types'
 import { createTranslator, type Language } from '../shared/i18n'
@@ -116,6 +116,7 @@ function buildMenu(language: Language, force = false): void {
         { type: 'separator' },
         { label: t('menu.save'), accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
         { label: t('menu.saveAs'), accelerator: 'CmdOrCtrl+Shift+S', click: () => sendMenu('save-as') },
+        { label: t('menu.reload'), accelerator: 'F5', click: () => sendMenu('reload') },
         { type: 'separator' },
         { label: t('menu.exportPdf'), accelerator: 'CmdOrCtrl+Alt+P', click: () => sendMenu('export-pdf') },
         { label: t('menu.exportWord'), accelerator: 'CmdOrCtrl+Alt+W', click: () => sendMenu('export-docx') },
@@ -417,44 +418,75 @@ function registerIpc(): void {
 let cachedDirectory: string | null = null
 
 interface PathWatcher {
-  watcher: FSWatcher
+  watcher: FSWatcher | null
   timer: NodeJS.Timeout | null
+  poll: NodeJS.Timeout | null
+  lastMtime: number
 }
 
 const fileWatchers = new Map<string, PathWatcher>()
+
+/** أقل فرق زمني نعتبره تعديلاً حقيقياً (تفادي ضجيج الكتابة المتزامنة). */
+const MTIME_EPSILON = 5
 
 function watcherKey(filePath: string): string {
   return resolve(filePath).toLowerCase()
 }
 
+/** يقرأ mtime ويُبلّغ الواجهة إن تغيّر فعلاً. */
+function notifyIfChanged(key: string, filePath: string): void {
+  void (async () => {
+    const entry = fileWatchers.get(key)
+    if (!entry) return
+    try {
+      const stat = await fs.stat(filePath)
+      if (!stat.isFile()) return
+      if (Math.abs(stat.mtimeMs - entry.lastMtime) <= MTIME_EPSILON) return
+      entry.lastMtime = stat.mtimeMs
+      mainWindow?.webContents.send('app:file-changed', {
+        path: filePath,
+        mtimeMs: stat.mtimeMs
+      })
+    } catch {
+      /* file may be mid-write or removed */
+    }
+  })()
+}
+
+/**
+ * نراقب المجلد الأب لا الملف نفسه: معظم المحررات تحفظ بكتابة ملف مؤقت ثم
+ * إعادة تسميته فوق الهدف، وهذا يُبطل مراقبة الملف (inode جديد) بعد أول حفظ.
+ * ونضيف استقصاءً دورياً خفيفاً كي لا يضيع التغيير إن فشل حدث النظام
+ * (مشاركة شبكة، محرر يحفظ بطريقة غير معتادة، أو مراقب أُغلق).
+ */
 function watchFile(filePath: string): void {
   const key = watcherKey(filePath)
   if (fileWatchers.has(key)) return
+  const name = basename(filePath).toLowerCase()
+  let lastMtime = 0
   try {
-    const watcher = watchFs(filePath, { persistent: false }, () => {
+    lastMtime = statSync(filePath).mtimeMs
+  } catch {
+    /* not on disk yet */
+  }
+
+  const poll = setInterval(() => notifyIfChanged(key, filePath), 1500)
+  poll.unref?.()
+
+  try {
+    const watcher = watchFs(dirname(filePath), { persistent: false }, (_event, filename) => {
+      if (filename && String(filename).toLowerCase() !== name) return
       const entry = fileWatchers.get(key)
       if (!entry) return
       if (entry.timer) clearTimeout(entry.timer)
-      entry.timer = setTimeout(() => {
-        void (async () => {
-          try {
-            const stat = await fs.stat(filePath)
-            if (!stat.isFile()) return
-            mainWindow?.webContents.send('app:file-changed', {
-              path: filePath,
-              mtimeMs: stat.mtimeMs
-            })
-          } catch {
-            /* file may be mid-write or removed */
-          }
-        })()
-      }, 220)
+      entry.timer = setTimeout(() => notifyIfChanged(key, filePath), 220)
       entry.timer.unref?.()
     })
     watcher.on('error', () => unwatchFile(filePath))
-    fileWatchers.set(key, { watcher, timer: null })
+    fileWatchers.set(key, { watcher, timer: null, poll, lastMtime })
   } catch {
-    /* watching is best effort */
+    // المراقبة عبر الأحداث فشلت: الاستقصاء وحده يكفي.
+    fileWatchers.set(key, { watcher: null, timer: null, poll, lastMtime })
   }
 }
 
@@ -463,8 +495,9 @@ function unwatchFile(filePath: string): void {
   const entry = fileWatchers.get(key)
   if (!entry) return
   if (entry.timer) clearTimeout(entry.timer)
+  if (entry.poll) clearInterval(entry.poll)
   try {
-    entry.watcher.close()
+    entry.watcher?.close()
   } catch {
     /* ignore */
   }

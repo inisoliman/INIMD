@@ -824,6 +824,7 @@ fn tr(lang: &str, key: &str) -> &'static str {
         "menu.open" => if ar { "فتح…" } else { "Open…" },
         "menu.save" => if ar { "حفظ" } else { "Save" },
         "menu.saveAs" => if ar { "حفظ باسم…" } else { "Save as…" },
+        "menu.reload" => if ar { "تحديث من القرص" } else { "Reload from disk" },
         "menu.exportPdf" => if ar { "تصدير إلى PDF…" } else { "Export to PDF…" },
         "menu.exportWord" => if ar { "تصدير إلى Word…" } else { "Export to Word…" },
         "menu.closeTab" => if ar { "إغلاق التبويب" } else { "Close tab" },
@@ -876,6 +877,11 @@ fn build_menu(app: &AppHandle, lang: &str) -> tauri::Result<()> {
         .item(
             &MenuItemBuilder::with_id("save-as", tr(lang, "menu.saveAs"))
                 .accelerator("CmdOrCtrl+Shift+S")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("reload", tr(lang, "menu.reload"))
+                .accelerator("F5")
                 .build(app)?,
         )
         .separator()

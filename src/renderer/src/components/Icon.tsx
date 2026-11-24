@@ -26,6 +26,7 @@ export type IconName =
   | 'direction'
   | 'file'
   | 'folder'
+  | 'reload'
   | 'sparkle'
 
 const PATHS: Record<IconName, string[]> = {
@@ -54,6 +55,7 @@ const PATHS: Record<IconName, string[]> = {
   direction: ['M17 8l4 4-4 4', 'M3 12h18'],
   file: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6'],
   folder: ['M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z'],
+  reload: ['M21 12a9 9 0 1 1-3-6.7', 'M21 3v6h-6'],
   sparkle: ['M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z', 'M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z']
 }
 

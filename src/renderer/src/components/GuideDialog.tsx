@@ -11,6 +11,7 @@ const SHORTCUTS: [string, MessageKey][] = [
   ['Ctrl + O', 'guide.shortcut.open'],
   ['Ctrl + S', 'guide.shortcut.save'],
   ['Ctrl + Shift + S', 'guide.shortcut.saveAs'],
+  ['F5', 'guide.shortcut.reload'],
   ['Ctrl + W', 'guide.shortcut.closeTab'],
   ['Ctrl + F', 'guide.shortcut.find'],
   ['F7 / Shift + F7', 'guide.shortcut.review'],

@@ -1,5 +1,5 @@
 import { _electron as electron } from 'playwright'
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -254,6 +254,48 @@ report.reviewClosedAfterTyping = (await win.locator('.change-banner').count()) =
 await win.keyboard.press('Control+z')
 await win.waitForTimeout(400)
 log('external change done')
+
+// مراقبة الحفظ الذري (كتابة ملف مؤقت + إعادة تسمية) — أسلوب VS Code وJetBrains.
+// قبل الإصلاح كانت مراقبة الملف نفسه تموت بعد أول إعادة تسمية.
+log('atomic save watcher')
+report.reloadButtonVisible = await win.locator('.status-reload').isVisible()
+let atomicRound = 0
+for (let round = 1; round <= 2; round += 1) {
+  const staged = `${working}.tmp`
+  writeFileSync(staged, `${readFileSync(working, 'utf8').replace(/\r?\n/g, '\r\n')}\r\nسطر ذري ${round} — atomic marker.\r\n`)
+  renameSync(staged, working)
+  let seen = false
+  for (let i = 0; i < 40; i += 1) {
+    await win.waitForTimeout(250)
+    if ((await win.locator('.md-body').innerText()).includes(`atomic marker`)) {
+      seen = true
+      break
+    }
+  }
+  if (seen) atomicRound += 1
+  if (await win.locator('.change-banner .ghost-btn').count()) {
+    await win.locator('.change-banner .ghost-btn').last().click().catch(() => undefined)
+    await win.waitForTimeout(300)
+  }
+}
+report.atomicSavesDetected = `${atomicRound}/2`
+
+// التحديث اليدوي من القرص (زر شريط الحالة + F5) — شبكة أمان حين لا يصل حدث المراقبة.
+const manualStaged = `${working}.tmp`
+writeFileSync(manualStaged, `${readFileSync(working, 'utf8')}\r\nسطر يدوي — manual reload marker.\r\n`)
+renameSync(manualStaged, working)
+await win.waitForTimeout(400)
+await win.locator('.status-reload').click({ force: true })
+let manualSeen = false
+for (let i = 0; i < 32; i += 1) {
+  await win.waitForTimeout(250)
+  if ((await win.locator('.md-body').innerText()).includes('manual reload marker')) {
+    manualSeen = true
+    break
+  }
+}
+report.manualReloadDetected = manualSeen
+log('atomic save watcher done')
 
 // فهرس المحتويات: البند النشط يتبع التمرير
 await win.locator('.preview-scroll').evaluate((node) => {

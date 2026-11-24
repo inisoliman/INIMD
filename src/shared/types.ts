@@ -119,6 +119,7 @@ export type MenuAction =
   | 'new'
   | 'open'
   | 'save'
+  | 'reload'
   | 'save-as'
   | 'export-pdf'
   | 'export-docx'

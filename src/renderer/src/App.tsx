@@ -497,6 +497,64 @@ export default function App(): React.ReactElement {
     )
   }, [])
 
+  /** تحديث يدوي من القرص — الحلّ الأخير حين لا يصل حدث المراقبة. */
+  const reloadFromDisk = useCallback(
+    async (id?: string) => {
+      const targetId = id ?? activeIdRef.current
+      const tab = tabsRef.current.find((item) => item.id === targetId)
+      if (!tab) return
+      if (!tab.path) {
+        notify(tRef.current('app.reloadNoPath'), 'info')
+        return
+      }
+      try {
+        const file = await window.api.readFile(tab.path)
+        const current = tabsRef.current.find((item) => item.id === tab.id)
+        if (!current) return
+        if (current.content !== current.savedContent) {
+          const translate = tRef.current
+          setDialog({
+            title: translate('app.externalChangeTitle'),
+            message: translate('app.externalChangeMessage', { name: current.name }),
+            buttons: [
+              {
+                label: translate('app.reloadFile'),
+                kind: 'primary',
+                action: () => {
+                  applyDiskContent(current.id, file)
+                  notify(translate('app.reloaded', { name: current.name }), 'success')
+                }
+              },
+              {
+                label: translate('app.keepMine'),
+                kind: 'ghost',
+                action: () => undefined
+              }
+            ]
+          })
+          return
+        }
+        if (normalizeEol(file.content) === current.content) {
+          setTabs((prev) =>
+            prev.map((item) => (item.id === current.id ? { ...item, mtimeMs: file.mtimeMs } : item))
+          )
+          notify(tRef.current('app.diskUpToDate'), 'info')
+          return
+        }
+        applyDiskContent(current.id, file)
+        notify(tRef.current('app.reloaded', { name: current.name }), 'success')
+      } catch (error) {
+        notify(
+          tRef.current('app.openFailed', {
+            error: error instanceof Error ? error.message : String(error)
+          }),
+          'error'
+        )
+      }
+    },
+    [applyDiskContent, notify]
+  )
+
   const handleFileChange = useCallback(
     async (change: FileChange) => {
       const tab = tabsRef.current.find(
@@ -759,6 +817,7 @@ export default function App(): React.ReactElement {
       const id = activeIdRef.current
       if (id) void saveTab(id)
     },
+    reload: () => void reloadFromDisk(),
     'save-as': () => {
       const id = activeIdRef.current
       if (id) void saveTab(id, true)
@@ -1215,6 +1274,7 @@ export default function App(): React.ReactElement {
           lines={lines}
           autosave={settings.autosave}
           onShowInFolder={(path) => void window.api.showItemInFolder(path)}
+          onReload={() => void reloadFromDisk()}
         />
 
         {settingsOpen ? (
